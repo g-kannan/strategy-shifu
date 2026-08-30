@@ -25,6 +25,7 @@ Open [http://localhost:3000](http://localhost:3000). For a production check, use
 - Desktop comparison matrix, recommendation explanation, and mobile card fallback
 - Separate Compute Guide page with Databricks SQL warehouse capability comparison
 - Explicit hard-gate Pass/Fail states plus structured performance and operations guidance
+- Workload-level chat/NLP intent that highlights Databricks Genie and limits DWH recommendations to Serverless or Pro
 - Seventeen high-level WebMCP tools registered on `document.modelContext`
 - A shared React state model used by both human controls and agent calls
 
@@ -37,9 +38,10 @@ The decision engine applies this order:
 1. Price every configured workload using its selected compute and independent schedule.
 2. For the active workload, resolve all category-valid compute alternatives.
 3. Add the unchanged cost of every other workload to each candidate project.
-4. Apply private-networking and project-budget gates.
-5. Rank eligible options by cost efficiency and operational simplicity.
-6. Recommend only an option that passes both gates.
+4. Apply private-networking and Databricks Genie compatibility gates.
+5. Apply the project-budget gate.
+6. Rank eligible options by cost efficiency and operational simplicity.
+7. Recommend only an option that passes every gate.
 
 If no technically valid strategy is within budget, StrategyShifu returns no recommendation. See [`docs/architecture.md`](./docs/architecture.md) for the full model.
 
@@ -52,7 +54,7 @@ The page registers the following browser-native tools:
 | `get_decision_state` | Read the complete input state and computed comparison |
 | `list_workloads` | List the project workloads and active workload |
 | `add_workload` | Add a named DWH, ETL, or DEV workload |
-| `update_workload` | Update compute or category-specific sizing |
+| `update_workload` | Update compute, sizing, or the chat/NLP requirement |
 | `remove_workload` | Remove a workload except the final one |
 | `select_workload` | Focus the UI and comparison on one workload |
 | `set_requirement` | Update cloud or private-networking requirements |

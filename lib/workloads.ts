@@ -30,6 +30,7 @@ export function createDefaultWorkload(
     name: name ?? getDefaultWorkloadName(type, id),
     type,
     computeId: DEFAULT_COMPUTE_BY_TYPE[type],
+    naturalLanguageAnalytics: false,
     hoursPerDay: type === "ETL" ? 3 : type === "DEV" ? 8 : 24,
     daysPerMonth: type === "ETL" ? 30 : type === "DEV" ? 22 : 31,
     warehouseSize: "2X-Small",
@@ -47,6 +48,7 @@ export function changeWorkloadType(workload: Workload, type: WorkloadCategory): 
     name: getDefaultWorkloadName(type, workload.id),
     type,
     computeId: DEFAULT_COMPUTE_BY_TYPE[type],
+    naturalLanguageAnalytics: type === "DWH" ? workload.naturalLanguageAnalytics : false,
   };
 }
 

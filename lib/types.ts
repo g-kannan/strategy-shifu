@@ -26,6 +26,7 @@ export interface Workload {
   name: string;
   type: WorkloadCategory;
   computeId: ComputeId;
+  naturalLanguageAnalytics: boolean;
   hoursPerDay: number;
   daysPerMonth: number;
   warehouseSize: WarehouseSize;
@@ -65,6 +66,7 @@ export interface StrategyDefinition {
   description: string;
   workloadType: WorkloadCategory;
   supportsPrivateNetworking: boolean;
+  supportsGenie: boolean;
   operationalScore: number;
   performanceLabel: string;
   performanceDetail: string;

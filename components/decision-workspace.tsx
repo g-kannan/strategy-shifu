@@ -371,6 +371,12 @@ export function DecisionWorkspace() {
             <div><Network /><span><b>Private networking</b></span></div>
             <button className={`switch ${decision.requirements.privateNetworking ? "on" : ""}`} role="switch" aria-checked={decision.requirements.privateNetworking} onClick={() => setDecision((current) => ({ ...current, requirements: { ...current.requirements, privateNetworking: !current.requirements.privateNetworking } }))}><span /></button>
           </div>
+          {activeWorkload.type === "DWH" && (
+            <div className={`requirement-row genie-requirement ${activeWorkload.naturalLanguageAnalytics ? "active" : ""}`}>
+              <div><Spark /><span><b>Natural-language Q&amp;A</b></span></div>
+              <button className={`switch ${activeWorkload.naturalLanguageAnalytics ? "on" : ""}`} role="switch" aria-label="Require natural-language questions and answers over data" aria-checked={activeWorkload.naturalLanguageAnalytics} onClick={() => setWorkload("naturalLanguageAnalytics", !activeWorkload.naturalLanguageAnalytics)}><span /></button>
+            </div>
+          )}
 
           <div className="budget-block">
             <div className="currency-row">
@@ -498,6 +504,16 @@ function ComparisonExperience({
                     </div>
                   ))}
                 </ComparisonRow>
+                {comparison.activeWorkload.naturalLanguageAnalytics && (
+                  <ComparisonRow label="Databricks Genie" hint="Genie enables chat-based and natural-language questions over data and is supported on Serverless and Pro SQL warehouses." recommendedIndex={recommendedIndex}>
+                    {evaluations.map((evaluation) => (
+                      <div key={evaluation.strategy.id} className={`table-signal ${evaluation.strategy.supportsGenie ? "pass" : "fail"}`}>
+                        <i>{evaluation.strategy.supportsGenie ? <Check /> : <Close />}</i>
+                        <span><b>{evaluation.strategy.supportsGenie ? "Supported" : "Not supported"}</b><small>{evaluation.strategy.supportsGenie ? "Chat + NLP questions over data" : "Genie requires Serverless or Pro SQL"}</small></span>
+                      </div>
+                    ))}
+                  </ComparisonRow>
+                )}
                 <ComparisonRow label="Workload cost" hint="Monthly cost for the active workload only." recommendedIndex={recommendedIndex}>
                   {evaluations.map((evaluation) => (
                     <div key={evaluation.strategy.id} className="table-metric"><b>{formatCurrency(evaluation.workloadCost, decision.currency, decision.usdToInrRate)}</b><small>{formatHourlyRate(evaluation.costBreakdown.totalHourlyRate, decision.currency, decision.usdToInrRate)} / runtime hour</small></div>
@@ -541,6 +557,7 @@ function OptionHeader({ evaluation, decision, onSelectOption }: { evaluation: Ev
       <div className="table-option-badges">
         {evaluation.recommended && <span className="table-recommended"><Spark /> RECOMMENDED</span>}
         {evaluation.configured && <span className="table-current">CURRENT</span>}
+        {getActiveWorkload(decision).naturalLanguageAnalytics && evaluation.strategy.supportsGenie && <span className="table-genie"><Spark /> GENIE</span>}
       </div>
       <div className="table-option-title"><i className={evaluation.configured ? "selected" : ""} /><span><b>{evaluation.strategy.shortName}</b><small>{evaluation.strategy.category}</small></span></div>
       <strong>{formatCurrency(evaluation.workloadCost, decision.currency, decision.usdToInrRate)} <small>/ month</small></strong>
@@ -576,7 +593,7 @@ function TextMetric({ title, detail }: { title: string; detail?: string }) {
 function WhyRecommended({ decision, comparison, onSelectOption }: { decision: DecisionState; comparison: ReturnType<typeof compareStrategies>; onSelectOption: (computeId: ComputeId) => void }) {
   const winner = comparison.recommendation;
   if (!winner) {
-    return <div className="why-panel no-winner"><span><Close /></span><div><p className="section-index">NO ELIGIBLE RECOMMENDATION</p><h3>Every option fails a hard gate.</h3><p>Review private networking and project budget signals in the comparison view.</p></div></div>;
+    return <div className="why-panel no-winner"><span><Close /></span><div><p className="section-index">NO ELIGIBLE RECOMMENDATION</p><h3>Every option fails a hard gate.</h3><p>Review Genie support, private networking, and project budget signals in the comparison view.</p></div></div>;
   }
   const alternatives = comparison.evaluations.filter((evaluation) => evaluation.strategy.id !== winner.strategy.id);
   return (
@@ -614,7 +631,7 @@ function RecommendationBanner({ decision, comparison, onBudgetChange }: { decisi
         <div className="recommendation-copy">
           <p className="section-index">PROJECT STATUS</p>
           <h3>No valid option fits {formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)}.</h3>
-          <p>{lowestValid ? `The lowest valid project needs ${formatCurrency(lowestValid.estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} more per month.` : "Relax the private networking requirement to reveal another option."}</p>
+          <p>{lowestValid ? `The lowest valid project needs ${formatCurrency(lowestValid.estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} more per month.` : "Review Genie, networking, and workload compatibility requirements to reveal another option."}</p>
         </div>
         {lowestValid && <button onClick={() => onBudgetChange(Math.ceil(lowestValid.estimatedCost / 50) * 50)}>Raise budget to {formatCurrency(Math.ceil(lowestValid.estimatedCost / 50) * 50, decision.currency, decision.usdToInrRate)} <ArrowUpRight /></button>}
       </div>
@@ -644,6 +661,7 @@ function StrategyCard({ evaluation, rank, decision }: { evaluation: Evaluation; 
       <div className="card-topline"><span>0{rank}</span><small>{strategy.category}</small></div>
       <h3>{strategy.shortName}</h3>
       <p className="strategy-full-name">{strategy.name}</p>
+      {getActiveWorkload(decision).naturalLanguageAnalytics && <span className={`genie-card-badge ${strategy.supportsGenie ? "supported" : "unsupported"}`}>{strategy.supportsGenie ? "Genie · Chat + NLP" : "Genie not supported"}</span>}
       <p className="strategy-description">{strategy.description}</p>
       <div className="cost-row">
         <span><small>WORKLOAD / MONTH</small><b>{formatCurrency(evaluation.workloadCost, decision.currency, decision.usdToInrRate)}</b></span>

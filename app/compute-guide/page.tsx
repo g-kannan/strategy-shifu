@@ -12,7 +12,6 @@ type Capability = {
   name: string;
   description: string;
   icon: "photon" | "predictive" | "workload" | "genie";
-  featured?: boolean;
   availability: Record<WarehouseType, boolean>;
 };
 
@@ -39,9 +38,8 @@ const capabilities: Capability[] = [
   },
   {
     name: "Genie",
-    description: "Natural-language analytics through Genie Agents for chat-based questions over your data.",
+    description: "Natural-language analytics through Genie Agents, formerly known as Genie Spaces.",
     icon: "genie",
-    featured: true,
     availability: { Serverless: true, Pro: true, Classic: false },
   },
 ];
@@ -101,20 +99,16 @@ export default function ComputeGuide() {
             </thead>
             <tbody>
               {capabilities.map((capability) => (
-                <tr key={capability.name} className={capability.featured ? "featured-capability" : ""}>
+                <tr key={capability.name}>
                   <th scope="row">
                     <div className="capability-name">
                       <CapabilityIcon kind={capability.icon} />
-                      <span>
-                        <strong>{capability.name}{capability.featured && <em>TOP FOR CHAT + NLP</em>}</strong>
-                        <small>{capability.description}</small>
-                      </span>
+                      <span><strong>{capability.name}</strong><small>{capability.description}</small></span>
                     </div>
                   </th>
                   {warehouseTypes.map((warehouse) => (
-                    <td key={warehouse} className={`${capability.availability[warehouse] ? "available-cell" : "unavailable-cell"} ${capability.featured && capability.availability[warehouse] ? "genie-supported-cell" : ""}`}>
+                    <td key={warehouse} className={capability.availability[warehouse] ? "available-cell" : "unavailable-cell"}>
                       <Availability available={capability.availability[warehouse]} warehouse={warehouse} />
-                      {capability.featured && capability.availability[warehouse] && <small className="capability-cell-note">Chat + NLP</small>}
                     </td>
                   ))}
                 </tr>
@@ -123,15 +117,6 @@ export default function ComputeGuide() {
           </table>
         </div>
         <p className="guide-footnote">Capabilities and startup guidance are based on the Databricks SQL warehouse type documentation. Availability can vary by cloud and region.</p>
-        <aside className="genie-callout" aria-labelledby="genie-callout-title">
-          <div className="genie-callout-icon"><Spark /></div>
-          <div>
-            <p className="section-index">CHAT + NLP CAPABILITY</p>
-            <h2 id="genie-callout-title">Choose Genie when users ask questions in natural language.</h2>
-            <p>Genie turns chat-based questions about your data into natural-language analytics. It is available on Serverless and Pro only; Classic does not support Genie.</p>
-          </div>
-          <span className="genie-callout-badge">SERVERLESS + PRO</span>
-        </aside>
       </section>
 
       <section className="guide-next-step">

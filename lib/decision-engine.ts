@@ -48,6 +48,18 @@ function evaluateStrategy(
       );
     }
   }
+  if (activeWorkload.naturalLanguageAnalytics && !strategy.supportsGenie) {
+    failedRequirements.push("Databricks Genie for chat and NLP questions is available only on Serverless and Pro SQL warehouses.");
+  }
+  const incompatibleGenieWorkloads = decision.workloads
+    .filter((workload) => workload.id !== activeWorkload.id && workload.naturalLanguageAnalytics)
+    .filter((workload) => !getStrategiesForWorkload(workload.type)
+      .find((candidate) => candidate.id === workload.computeId)?.supportsGenie);
+  if (incompatibleGenieWorkloads.length > 0) {
+    failedRequirements.push(
+      `Configured workload${incompatibleGenieWorkloads.length === 1 ? "" : "s"} ${incompatibleGenieWorkloads.map((workload) => workload.name).join(", ")} must use Serverless or Pro SQL for Databricks Genie.`,
+    );
+  }
 
   const costBreakdown = calculateWorkloadCost(activeWorkload, decision, strategy.id);
   const workloadCost = Math.round(costBreakdown.totalMonthlyCost);
@@ -64,7 +76,9 @@ function evaluateStrategy(
 
   const reasoning = technicalFit
     ? [
-        `Supports the ${activeWorkload.type} workload configuration.`,
+        activeWorkload.naturalLanguageAnalytics
+          ? "Supports Databricks Genie for chat-based and natural-language questions over data."
+          : `Supports the ${activeWorkload.type} workload configuration.`,
         budgetFit
           ? `${formatCurrency(decision.budget - estimatedCost, decision.currency, decision.usdToInrRate)} remains in the project budget.`
           : `${formatCurrency(estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} over the project budget.`,
@@ -114,7 +128,9 @@ export function compareStrategies(decision: DecisionState): ComparisonResult {
     recommendation: winner,
     currentPortfolioCost,
     summary: winner
-      ? `${winner.strategy.shortName} is the strongest option for ${activeWorkload.name} within the ${formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)} project budget.`
+      ? activeWorkload.naturalLanguageAnalytics
+        ? `${winner.strategy.shortName} supports Databricks Genie for ${activeWorkload.name} and is the strongest option within the ${formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)} project budget.`
+        : `${winner.strategy.shortName} is the strongest option for ${activeWorkload.name} within the ${formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)} project budget.`
       : `No technically valid option for ${activeWorkload.name} fits the current project budget.`,
   };
 }

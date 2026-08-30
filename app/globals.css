@@ -163,7 +163,6 @@ svg { width: 18px; height: 18px; }
 .capability-name { display: flex; align-items: flex-start; gap: 14px; }
 .capability-name > span:last-child { display: grid; gap: 5px; }
 .capability-name strong { color: var(--ink); font-size: 14px; line-height: 1.25; }
-.capability-name strong em { display: inline-block; margin-left: 9px; padding: 4px 6px; border-radius: 4px; background: var(--violet); color: white; font: 700 8px/1 ui-monospace, monospace; letter-spacing: .06em; vertical-align: 2px; font-style: normal; }
 .capability-name small { color: var(--muted); font-size: 11px; font-weight: 500; line-height: 1.4; }
 .capability-symbol, .capability-svg { flex: none; width: 18px; height: 18px; color: var(--violet); }
 .capability-symbol { display: inline-grid; place-items: center; font: 400 25px/1 Georgia, serif; }
@@ -175,19 +174,7 @@ svg { width: 18px; height: 18px; }
 .capability-availability svg { width: 18px; height: 18px; }
 .capability-availability.available { color: var(--violet); }
 .capability-availability.unavailable { color: #aeb8b2; }
-.featured-capability th { background: #faf8ff; }
-.featured-capability .capability-name { position: relative; }
-.featured-capability .capability-symbol { color: var(--violet); }
-.genie-supported-cell { background: #e6f8c7; }
-.capability-cell-note { display: block; margin-top: 5px; color: var(--green); font: 700 8px ui-monospace, monospace; letter-spacing: .05em; text-transform: uppercase; }
 .guide-footnote { margin: 15px 0 0; color: #65716b; font: 500 10px/1.5 ui-monospace, monospace; }
-.genie-callout { margin-top: 28px; padding: 24px 26px; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 17px; border: 1px solid #b8d889; background: #effbdc; }
-.genie-callout-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: var(--violet); color: white; }
-.genie-callout-icon svg { width: 21px; height: 21px; }
-.genie-callout .section-index { margin-bottom: 7px; color: var(--green); }
-.genie-callout h2 { margin: 0 0 6px; font-size: 21px; letter-spacing: -.035em; }
-.genie-callout p:last-child { max-width: 720px; margin: 0; color: #4d5d51; font-size: 12px; line-height: 1.5; }
-.genie-callout-badge { white-space: nowrap; padding: 8px 10px; border: 1px solid #9cc46c; color: var(--green); font: 700 9px ui-monospace, monospace; letter-spacing: .07em; }
 .guide-next-step { max-width: 1500px; margin: 0 auto 56px; padding: 26px clamp(24px, 5vw, 80px); display: flex; justify-content: space-between; align-items: center; gap: 24px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .guide-next-step .section-index { margin-bottom: 8px; }
 .guide-next-step h2 { margin: 0; font-size: 24px; letter-spacing: -.04em; }
@@ -242,11 +229,15 @@ textarea:focus, .number-field:focus-within, .select-field:focus-within { border-
 .warehouse-specs span { display: block; background: #1b2a24; padding: 7px 8px; color: #8f9c95; font: 600 8px ui-monospace, monospace; }
 .warehouse-specs b { color: var(--lime); font-size: 10px; }
 .requirement-row { margin-top: 24px; padding: 16px 0; border-top: 1px solid rgba(255,255,255,.14); border-bottom: 1px solid rgba(255,255,255,.14); display: flex; align-items: center; justify-content: space-between; }
+.requirement-row + .requirement-row { margin-top: 0; border-top: 0; }
 .requirement-row > div { display: flex; align-items: center; gap: 11px; }
 .requirement-row > div > svg { color: var(--lime); }
 .requirement-row span { display: grid; gap: 4px; }
 .requirement-row b { font-size: 12px; }
 .requirement-row small { font-size: 10px; color: #94a098; }
+.genie-requirement { transition: background .18s ease, padding .18s ease, margin .18s ease; }
+.genie-requirement.active { margin-left: -10px; margin-right: -10px; padding-left: 10px; padding-right: 10px; background: rgba(216,239,77,.08); }
+.genie-requirement.active b { color: var(--lime); }
 .switch { border: 0; background: #4f5b55; width: 40px; height: 22px; border-radius: 22px; padding: 3px; }
 .switch span { width: 16px; height: 16px; border-radius: 50%; background: white; display: block; transition: transform .18s ease; }
 .switch.on { background: var(--violet); }
@@ -316,10 +307,11 @@ textarea:focus, .number-field:focus-within, .select-field:focus-within { border-
 .comparison-table thead .recommended-column { box-shadow: inset 2px 2px 0 #a995fb, inset -2px 0 0 #a995fb; }
 .comparison-table tbody tr:last-child td.recommended-column { box-shadow: inset 2px 0 0 #a995fb, inset -2px -2px 0 #a995fb; }
 .table-option-header { min-height: 212px; padding: 20px; position: relative; display: flex; flex-direction: column; align-items: flex-start; }
-.table-option-badges { min-height: 20px; display: flex; gap: 5px; margin: -18px -18px 10px auto; }
-.table-recommended, .table-current { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; background: var(--violet); color: white; font: 700 10px ui-monospace, monospace; letter-spacing: .05em; }
+.table-option-badges { min-height: 20px; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; margin: -18px -18px 10px auto; }
+.table-recommended, .table-current, .table-genie { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; background: var(--violet); color: white; font: 700 10px ui-monospace, monospace; letter-spacing: .05em; }
 .table-current { background: #68736d; }
-.table-recommended svg { width: 9px; height: 9px; }
+.table-genie { background: var(--lime); color: var(--ink); }
+.table-recommended svg, .table-genie svg { width: 9px; height: 9px; }
 .table-option-title { display: flex; align-items: center; gap: 9px; }
 .table-option-title > i { width: 19px; height: 19px; border: 2px solid #c4c9c6; border-radius: 50%; position: relative; }
 .table-option-title > i.selected { border-color: var(--violet); }
@@ -380,6 +372,9 @@ textarea:focus, .number-field:focus-within, .select-field:focus-within { border-
 .card-topline small { color: #707a74; background: #efefe9; padding: 5px 7px; font-size: 10px; }
 .strategy-card h3 { font: 400 30px/1 Georgia, serif; margin: 0 0 7px; letter-spacing: -.03em; }
 .strategy-full-name { min-height: 30px; font-size: 11px; font-weight: 700; line-height: 1.35; margin: 0; }
+.genie-card-badge { width: max-content; margin: 0 0 8px; padding: 5px 7px; font: 700 9px ui-monospace, monospace; letter-spacing: .05em; text-transform: uppercase; }
+.genie-card-badge.supported { background: #e6f8c7; color: var(--green); }
+.genie-card-badge.unsupported { background: var(--red-soft); color: var(--red); }
 .strategy-description { min-height: 62px; color: var(--muted); font-size: 11px; line-height: 1.5; margin: 9px 0 15px; }
 .cost-row { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 15px 0; display: flex; align-items: end; justify-content: space-between; }
 .cost-row > span { display: grid; }
@@ -456,8 +451,6 @@ footer > span { justify-self: end; color: var(--lime); font: 600 9px ui-monospac
   .hero-subrow { align-items: stretch; flex-direction: column; gap: 20px; }
   .guide-hero { align-items: flex-start; flex-direction: column; gap: 18px; padding-top: 48px; }
   .guide-hero > p { max-width: 680px; }
-  .genie-callout { grid-template-columns: auto 1fr; }
-  .genie-callout-badge { grid-column: 2; justify-self: start; }
   .guide-next-step { align-items: flex-start; flex-direction: column; }
   .project-overview-heading { align-items: stretch; flex-direction: column; gap: 22px; }
   .project-period-control { width: min(100%, 280px); }
@@ -496,10 +489,6 @@ footer > span { justify-self: end; color: var(--lime); font: 600 9px ui-monospac
   .capability-name { gap: 10px; }
   .capability-name strong { font-size: 13px; }
   .capability-name small { font-size: 10px; }
-  .capability-name strong em { display: block; width: max-content; margin: 6px 0 0; }
-  .genie-callout { padding: 20px; }
-  .genie-callout h2 { font-size: 18px; }
-  .genie-callout p:last-child { font-size: 11px; }
   .guide-next-step { margin-bottom: 40px; }
   .project-overview { padding-left: 18px; padding-right: 18px; }
   .project-overview-heading, .project-overview-total { padding-left: 20px; padding-right: 20px; }

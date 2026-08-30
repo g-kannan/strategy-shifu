@@ -88,6 +88,7 @@ export function useWebMCP(
       name: { type: "string" },
       type: { type: "string", enum: ["DWH", "ETL", "DEV"] },
       computeId: { type: "string", enum: ["serverless-sql", "pro-sql", "classic-sql", "jobs-classic", "jobs-serverless", "all-purpose-classic"] },
+      naturalLanguageAnalytics: { type: "boolean", description: "Set true when users need chat-based or NLP questions over data; this requires Databricks Genie on Serverless or Pro SQL." },
       warehouseSize: { type: "string", enum: WAREHOUSE_SIZES },
       driverInstance: { type: "string" },
       workerInstance: { type: "string" },
@@ -137,7 +138,7 @@ export function useWebMCP(
       {
         name: "update_workload",
         title: "Update workload",
-        description: "Update a workload's identity, category, compute, or category-specific sizing fields.",
+        description: "Update a workload's identity, category, compute, sizing, or chat/NLP requirement. Set naturalLanguageAnalytics=true when users ask natural-language questions over data so Genie-capable Serverless and Pro options are highlighted.",
         inputSchema: {
           type: "object",
           properties: { workloadId: { type: "string" }, ...workloadProperties },
@@ -149,6 +150,7 @@ export function useWebMCP(
           const next = mutate((current) => updateWorkload(current, input.workloadId as string, (existing) => {
             const type = typeof input.type === "string" ? input.type as WorkloadCategory : existing.type;
             let workload = type === existing.type ? existing : changeWorkloadType(existing, type);
+            if (input.naturalLanguageAnalytics === true && type !== "DWH") throw new Error("naturalLanguageAnalytics applies only to DWH workloads with Databricks Genie.");
             if (typeof input.computeId === "string") {
               if (!isComputeForWorkload(type, input.computeId)) throw new Error(`${input.computeId} is not valid for ${type}.`);
               workload = { ...workload, computeId: input.computeId };
@@ -160,6 +162,7 @@ export function useWebMCP(
             return {
               ...workload,
               ...(typeof input.name === "string" ? { name: input.name } : {}),
+              ...(typeof input.naturalLanguageAnalytics === "boolean" ? { naturalLanguageAnalytics: input.naturalLanguageAnalytics } : {}),
               ...(typeof input.warehouseSize === "string" ? { warehouseSize: input.warehouseSize as WarehouseSize } : {}),
               ...(typeof input.driverInstance === "string" ? { driverInstance: input.driverInstance } : {}),
               ...(typeof input.workerInstance === "string" ? { workerInstance: input.workerInstance } : {}),

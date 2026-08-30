@@ -4,7 +4,7 @@ StrategyShifu is a client-side Next.js application with shared project state, ca
 
 ## Shared project state
 
-DecisionState contains a project name, display cost period, a collection of named workloads, the active workload ID, global cloud and region, private-networking requirement, currency, and project budget. Each workload owns its category, selected compute, category-specific sizing, and schedule.
+DecisionState contains a project name, display cost period, a collection of named workloads, the active workload ID, global cloud and region, private-networking requirement, currency, and project budget. Each workload owns its category, selected compute, category-specific sizing, schedule, and whether users need chat/NLP analytics over data.
 
 The React workspace owns this state. Human controls and WebMCP mutations call the same state setter; there is no agent-only store.
 
@@ -24,6 +24,8 @@ Category controls the visible sizing model:
 - ETL Serverless uses emitted DBU/hour and pipeline count.
 - ETL Classic uses driver instance, worker instance, worker count, and pipeline count.
 - DEV uses driver instance, worker instance, and worker count.
+
+For DWH workloads, `naturalLanguageAnalytics` represents an explicit request for chat-based or NLP questions over data. When enabled, the evaluator requires Databricks Genie support, highlights Genie in the decision workspace, and excludes Classic SQL. Serverless and Pro SQL remain eligible, subject to the other technical and budget gates.
 
 ## Pricing
 
@@ -48,9 +50,10 @@ The engine:
 1. prices every configured workload;
 2. resolves category-valid strategies for the active workload;
 3. checks private networking;
-4. checks total project budget;
-5. ranks eligible options by cost efficiency and operational simplicity; and
-6. selects only from options passing both hard gates.
+4. checks Databricks Genie support for chat/NLP workloads;
+5. checks total project budget;
+6. ranks eligible options by cost efficiency and operational simplicity; and
+7. selects only from options passing all hard gates.
 
 ## UI and browser-agent boundary
 
