@@ -115,13 +115,19 @@ export function DecisionWorkspace() {
             <small>Decide with your agent.</small>
           </span>
         </a>
-        <nav className="process-nav" aria-label="Decision progress">
-          <span className="process-step done"><i><Check /></i> Workloads</span>
-          <span className="process-line" />
-          <span className="process-step done"><i><Check /></i> Price</span>
-          <span className="process-line" />
-          <span className="process-step active"><i>03</i> Decide</span>
-        </nav>
+        <div className="header-center">
+          <nav className="page-nav" aria-label="Primary navigation">
+            <a className="active" href="/" aria-current="page">Databricks</a>
+            <a href="/compute-guide">Compute Guide</a>
+          </nav>
+          <nav className="process-nav" aria-label="Decision progress">
+            <span className="process-step done"><i><Check /></i> Workloads</span>
+            <span className="process-line" />
+            <span className="process-step done"><i><Check /></i> Price</span>
+            <span className="process-line" />
+            <span className="process-step active"><i>03</i> Decide</span>
+          </nav>
+        </div>
         <div className="agent-status-wrap">
           <button
             className={`agent-status ${connection}`}
