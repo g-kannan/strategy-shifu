@@ -1,0 +1,14 @@
+{
+  "AWS": {
+    "label": "Databricks AWS pricing",
+    "url": "https://www.databricks.com/product/pricing/product-pricing/instance-types"
+  },
+  "Azure": {
+    "label": "Microsoft Azure Databricks pricing",
+    "url": "https://azure.microsoft.com/en-us/pricing/details/databricks/"
+  },
+  "GCP": {
+    "label": "Databricks GCP pricing",
+    "url": "https://www.databricks.com/product/pricing/product-pricing/instance-types"
+  }
+}

@@ -1,0 +1,371 @@
+{
+  "currency": "USD",
+  "clouds": {
+    "AWS": {
+      "description": "Amazon Web Services",
+      "priceMultiplier": 1,
+      "regions": [
+        { "id": "us-east-1", "label": "US East (N. Virginia)", "multiplier": 1 },
+        { "id": "ap-south-1", "label": "Asia Pacific (Mumbai)", "multiplier": 1.19 }
+      ]
+    },
+    "Azure": {
+      "description": "Microsoft Azure",
+      "priceMultiplier": 1.06,
+      "regions": [
+        { "id": "eastus", "label": "US East", "multiplier": 1 },
+        { "id": "centralindia", "label": "Central India", "multiplier": 1.17 }
+      ]
+    },
+    "GCP": {
+      "description": "Google Cloud",
+      "priceMultiplier": 1.03,
+      "regions": [
+        { "id": "us-east1", "label": "US East (South Carolina)", "multiplier": 1 },
+        { "id": "asia-south1", "label": "Mumbai", "multiplier": 1.18 }
+      ]
+    }
+  },
+  "defaults": {
+    "regionByCloud": {
+      "AWS": "ap-south-1",
+      "Azure": "centralindia",
+      "GCP": "asia-south1"
+    },
+    "selectedWarehouseSize": "2X-Small",
+    "warehouseWorkerInstanceByCloud": {
+      "AWS": "i3.2xlarge",
+      "Azure": "Standard_E8ds_v4",
+      "GCP": "n2-highmem-8"
+    }
+  },
+  "warehouses": [
+    { "size": "2X-Small", "instance": "i3.2xlarge", "workers": 1, "vcpu": 8, "memoryGiB": 61, "dbuPerHour": 4, "baseHourlyRate": 0.624 },
+    { "size": "X-Small", "instance": "i3.2xlarge", "workers": 2, "vcpu": 8, "memoryGiB": 61, "dbuPerHour": 6, "baseHourlyRate": 0.624 },
+    { "size": "Small", "instance": "i3.4xlarge", "workers": 4, "vcpu": 16, "memoryGiB": 122, "dbuPerHour": 12, "baseHourlyRate": 1.248 },
+    { "size": "Medium", "instance": "i3.8xlarge", "workers": 8, "vcpu": 32, "memoryGiB": 244, "dbuPerHour": 24, "baseHourlyRate": 2.496 },
+    { "size": "Large", "instance": "i3.8xlarge", "workers": 16, "vcpu": 32, "memoryGiB": 244, "dbuPerHour": 40, "baseHourlyRate": 2.496 },
+    { "size": "X-Large", "instance": "i3.16xlarge", "workers": 32, "vcpu": 64, "memoryGiB": 488, "dbuPerHour": 80, "baseHourlyRate": 4.992 },
+    { "size": "2X-Large", "instance": "i3.16xlarge", "workers": 64, "vcpu": 64, "memoryGiB": 488, "dbuPerHour": 144, "baseHourlyRate": 4.992 },
+    { "size": "3X-Large", "instance": "i3.16xlarge", "workers": 128, "vcpu": 64, "memoryGiB": 488, "dbuPerHour": 272, "baseHourlyRate": 4.992 },
+    { "size": "4X-Large", "instance": "i3.16xlarge", "workers": 256, "vcpu": 64, "memoryGiB": 488, "dbuPerHour": 528, "baseHourlyRate": 4.992 },
+    { "size": "5X-Large", "instance": "i3.16xlarge", "workers": 512, "vcpu": 64, "memoryGiB": 488, "dbuPerHour": 1042, "baseHourlyRate": 4.992 }
+  ],
+  "instancesByCloud": {
+    "AWS": [
+      { "id": "i3.2xlarge", "family": "Storage optimized", "featured": false, "vcpu": 8, "memoryGiB": 61, "dbuPerHour": 2 },
+      { "id": "i3.4xlarge", "family": "Storage optimized", "featured": false, "vcpu": 16, "memoryGiB": 122, "dbuPerHour": 4 },
+      { "id": "i3.8xlarge", "family": "Storage optimized", "featured": false, "vcpu": 32, "memoryGiB": 244, "dbuPerHour": 8 },
+      { "id": "i3.16xlarge", "family": "Storage optimized", "featured": false, "vcpu": 64, "memoryGiB": 488, "dbuPerHour": 16 },
+      { "id": "m6i.xlarge", "family": "General purpose", "featured": true, "vcpu": 4, "memoryGiB": 16, "dbuPerHour": 0.76 },
+      { "id": "m6i.2xlarge", "family": "General purpose", "featured": true, "vcpu": 8, "memoryGiB": 32, "dbuPerHour": 1.52 },
+      { "id": "m6i.4xlarge", "family": "General purpose", "featured": true, "vcpu": 16, "memoryGiB": 64, "dbuPerHour": 3.04 },
+      { "id": "m6i.8xlarge", "family": "General purpose", "featured": true, "vcpu": 32, "memoryGiB": 128, "dbuPerHour": 6.08 },
+      { "id": "m6i.16xlarge", "family": "General purpose", "featured": true, "vcpu": 64, "memoryGiB": 256, "dbuPerHour": 12.16 },
+      { "id": "c6i.xlarge", "family": "Compute optimized", "featured": true, "vcpu": 4, "memoryGiB": 8, "dbuPerHour": 0.7 },
+      { "id": "c6i.2xlarge", "family": "Compute optimized", "featured": true, "vcpu": 8, "memoryGiB": 16, "dbuPerHour": 1.39 },
+      { "id": "c6i.4xlarge", "family": "Compute optimized", "featured": true, "vcpu": 16, "memoryGiB": 32, "dbuPerHour": 2.78 },
+      { "id": "c6i.8xlarge", "family": "Compute optimized", "featured": true, "vcpu": 32, "memoryGiB": 64, "dbuPerHour": 5.56 },
+      { "id": "c6i.16xlarge", "family": "Compute optimized", "featured": true, "vcpu": 64, "memoryGiB": 128, "dbuPerHour": 11.13 },
+      { "id": "r6i.xlarge", "family": "Memory optimized", "featured": true, "vcpu": 4, "memoryGiB": 32, "dbuPerHour": 1.02 },
+      { "id": "r6i.2xlarge", "family": "Memory optimized", "featured": true, "vcpu": 8, "memoryGiB": 64, "dbuPerHour": 2.04 },
+      { "id": "r6i.4xlarge", "family": "Memory optimized", "featured": true, "vcpu": 16, "memoryGiB": 128, "dbuPerHour": 4.08 },
+      { "id": "r6i.8xlarge", "family": "Memory optimized", "featured": true, "vcpu": 32, "memoryGiB": 256, "dbuPerHour": 8.16 },
+      { "id": "r6i.16xlarge", "family": "Memory optimized", "featured": true, "vcpu": 64, "memoryGiB": 512, "dbuPerHour": 16.32 }
+    ],
+    "Azure": [
+      { "id": "Standard_E8ds_v4", "family": "Memory optimized", "featured": false, "vcpu": 8, "memoryGiB": 64, "dbuPerHour": 2 },
+      { "id": "Standard_E16ds_v4", "family": "Memory optimized", "featured": false, "vcpu": 16, "memoryGiB": 128, "dbuPerHour": 4 },
+      { "id": "Standard_E32ds_v4", "family": "Memory optimized", "featured": false, "vcpu": 32, "memoryGiB": 256, "dbuPerHour": 8 },
+      { "id": "Standard_E64ds_v4", "family": "Memory optimized", "featured": false, "vcpu": 64, "memoryGiB": 504, "dbuPerHour": 16 },
+      { "id": "Standard_D4s_v5", "family": "General purpose", "featured": true, "vcpu": 4, "memoryGiB": 16, "dbuPerHour": 1 },
+      { "id": "Standard_D8s_v5", "family": "General purpose", "featured": true, "vcpu": 8, "memoryGiB": 32, "dbuPerHour": 2 },
+      { "id": "Standard_D16s_v5", "family": "General purpose", "featured": true, "vcpu": 16, "memoryGiB": 64, "dbuPerHour": 4 },
+      { "id": "Standard_D32s_v5", "family": "General purpose", "featured": true, "vcpu": 32, "memoryGiB": 128, "dbuPerHour": 8 },
+      { "id": "Standard_D64s_v5", "family": "General purpose", "featured": true, "vcpu": 64, "memoryGiB": 256, "dbuPerHour": 16 },
+      { "id": "Standard_F4s_v2", "family": "Compute optimized", "featured": true, "vcpu": 4, "memoryGiB": 8, "dbuPerHour": 1 },
+      { "id": "Standard_F8s_v2", "family": "Compute optimized", "featured": true, "vcpu": 8, "memoryGiB": 16, "dbuPerHour": 2 },
+      { "id": "Standard_F16s_v2", "family": "Compute optimized", "featured": true, "vcpu": 16, "memoryGiB": 32, "dbuPerHour": 4 },
+      { "id": "Standard_F32s_v2", "family": "Compute optimized", "featured": true, "vcpu": 32, "memoryGiB": 64, "dbuPerHour": 8 },
+      { "id": "Standard_F64s_v2", "family": "Compute optimized", "featured": true, "vcpu": 64, "memoryGiB": 128, "dbuPerHour": 16 },
+      { "id": "Standard_E4s_v5", "family": "Memory optimized", "featured": true, "vcpu": 4, "memoryGiB": 32, "dbuPerHour": 1 },
+      { "id": "Standard_E8s_v5", "family": "Memory optimized", "featured": true, "vcpu": 8, "memoryGiB": 64, "dbuPerHour": 2 },
+      { "id": "Standard_E16s_v5", "family": "Memory optimized", "featured": true, "vcpu": 16, "memoryGiB": 128, "dbuPerHour": 4 },
+      { "id": "Standard_E32s_v5", "family": "Memory optimized", "featured": true, "vcpu": 32, "memoryGiB": 256, "dbuPerHour": 8 },
+      { "id": "Standard_E64s_v5", "family": "Memory optimized", "featured": true, "vcpu": 64, "memoryGiB": 512, "dbuPerHour": 16 }
+    ],
+    "GCP": [
+      { "id": "n2-standard-4", "family": "General purpose", "featured": true, "vcpu": 4, "memoryGiB": 16, "dbuPerHour": 1 },
+      { "id": "n2-standard-8", "family": "General purpose", "featured": true, "vcpu": 8, "memoryGiB": 32, "dbuPerHour": 2 },
+      { "id": "n2-standard-16", "family": "General purpose", "featured": true, "vcpu": 16, "memoryGiB": 64, "dbuPerHour": 4 },
+      { "id": "n2-standard-32", "family": "General purpose", "featured": true, "vcpu": 32, "memoryGiB": 128, "dbuPerHour": 8 },
+      { "id": "n2-standard-64", "family": "General purpose", "featured": true, "vcpu": 64, "memoryGiB": 256, "dbuPerHour": 16 },
+      { "id": "c3-standard-4", "family": "Compute optimized", "featured": true, "vcpu": 4, "memoryGiB": 16, "dbuPerHour": 1 },
+      { "id": "c3-standard-8", "family": "Compute optimized", "featured": true, "vcpu": 8, "memoryGiB": 32, "dbuPerHour": 2 },
+      { "id": "c3-standard-16", "family": "Compute optimized", "featured": true, "vcpu": 16, "memoryGiB": 64, "dbuPerHour": 4 },
+      { "id": "c3-standard-32", "family": "Compute optimized", "featured": true, "vcpu": 32, "memoryGiB": 128, "dbuPerHour": 8 },
+      { "id": "c3-standard-64", "family": "Compute optimized", "featured": true, "vcpu": 64, "memoryGiB": 256, "dbuPerHour": 16 },
+      { "id": "n2-highmem-4", "family": "Memory optimized", "featured": true, "vcpu": 4, "memoryGiB": 32, "dbuPerHour": 1 },
+      { "id": "n2-highmem-8", "family": "Memory optimized", "featured": true, "vcpu": 8, "memoryGiB": 64, "dbuPerHour": 2 },
+      { "id": "n2-highmem-16", "family": "Memory optimized", "featured": true, "vcpu": 16, "memoryGiB": 128, "dbuPerHour": 4 },
+      { "id": "n2-highmem-32", "family": "Memory optimized", "featured": true, "vcpu": 32, "memoryGiB": 256, "dbuPerHour": 8 },
+      { "id": "n2-highmem-64", "family": "Memory optimized", "featured": true, "vcpu": 64, "memoryGiB": 512, "dbuPerHour": 16 }
+    ]
+  },
+  "vmHourlyRates": {
+    "source": "Vantage Instances Linux on-demand USD/hour",
+    "refreshedAt": "2026-07-21",
+    "AWS": {
+      "us-east-1": [
+        { "instanceId": "i3.2xlarge", "sku": "i3.2xlarge", "hourlyUsd": 0.624 },
+        { "instanceId": "i3.4xlarge", "sku": "i3.4xlarge", "hourlyUsd": 1.248 },
+        { "instanceId": "i3.8xlarge", "sku": "i3.8xlarge", "hourlyUsd": 2.496 },
+        { "instanceId": "i3.16xlarge", "sku": "i3.16xlarge", "hourlyUsd": 4.992 },
+        { "instanceId": "m6i.xlarge", "sku": "m6i.xlarge", "hourlyUsd": 0.192 },
+        { "instanceId": "m6i.2xlarge", "sku": "m6i.2xlarge", "hourlyUsd": 0.384 },
+        { "instanceId": "m6i.4xlarge", "sku": "m6i.4xlarge", "hourlyUsd": 0.768 },
+        { "instanceId": "m6i.8xlarge", "sku": "m6i.8xlarge", "hourlyUsd": 1.536 },
+        { "instanceId": "m6i.16xlarge", "sku": "m6i.16xlarge", "hourlyUsd": 3.072 },
+        { "instanceId": "c6i.xlarge", "sku": "c6i.xlarge", "hourlyUsd": 0.17 },
+        { "instanceId": "c6i.2xlarge", "sku": "c6i.2xlarge", "hourlyUsd": 0.34 },
+        { "instanceId": "c6i.4xlarge", "sku": "c6i.4xlarge", "hourlyUsd": 0.68 },
+        { "instanceId": "c6i.8xlarge", "sku": "c6i.8xlarge", "hourlyUsd": 1.36 },
+        { "instanceId": "c6i.16xlarge", "sku": "c6i.16xlarge", "hourlyUsd": 2.72 },
+        { "instanceId": "r6i.xlarge", "sku": "r6i.xlarge", "hourlyUsd": 0.252 },
+        { "instanceId": "r6i.2xlarge", "sku": "r6i.2xlarge", "hourlyUsd": 0.504 },
+        { "instanceId": "r6i.4xlarge", "sku": "r6i.4xlarge", "hourlyUsd": 1.008 },
+        { "instanceId": "r6i.8xlarge", "sku": "r6i.8xlarge", "hourlyUsd": 2.016 },
+        { "instanceId": "r6i.16xlarge", "sku": "r6i.16xlarge", "hourlyUsd": 4.032 }
+      ],
+      "ap-south-1": [
+        { "instanceId": "i3.2xlarge", "sku": "i3.2xlarge", "hourlyUsd": 0.708 },
+        { "instanceId": "i3.4xlarge", "sku": "i3.4xlarge", "hourlyUsd": 1.416 },
+        { "instanceId": "i3.8xlarge", "sku": "i3.8xlarge", "hourlyUsd": 2.832 },
+        { "instanceId": "i3.16xlarge", "sku": "i3.16xlarge", "hourlyUsd": 5.664 },
+        { "instanceId": "m6i.xlarge", "sku": "m6i.xlarge", "hourlyUsd": 0.202 },
+        { "instanceId": "m6i.2xlarge", "sku": "m6i.2xlarge", "hourlyUsd": 0.404 },
+        { "instanceId": "m6i.4xlarge", "sku": "m6i.4xlarge", "hourlyUsd": 0.808 },
+        { "instanceId": "m6i.8xlarge", "sku": "m6i.8xlarge", "hourlyUsd": 1.616 },
+        { "instanceId": "m6i.16xlarge", "sku": "m6i.16xlarge", "hourlyUsd": 3.232 },
+        { "instanceId": "c6i.xlarge", "sku": "c6i.xlarge", "hourlyUsd": 0.17 },
+        { "instanceId": "c6i.2xlarge", "sku": "c6i.2xlarge", "hourlyUsd": 0.34 },
+        { "instanceId": "c6i.4xlarge", "sku": "c6i.4xlarge", "hourlyUsd": 0.68 },
+        { "instanceId": "c6i.8xlarge", "sku": "c6i.8xlarge", "hourlyUsd": 1.36 },
+        { "instanceId": "c6i.16xlarge", "sku": "c6i.16xlarge", "hourlyUsd": 2.72 },
+        { "instanceId": "r6i.xlarge", "sku": "r6i.xlarge", "hourlyUsd": 0.26 },
+        { "instanceId": "r6i.2xlarge", "sku": "r6i.2xlarge", "hourlyUsd": 0.52 },
+        { "instanceId": "r6i.4xlarge", "sku": "r6i.4xlarge", "hourlyUsd": 1.04 },
+        { "instanceId": "r6i.8xlarge", "sku": "r6i.8xlarge", "hourlyUsd": 2.08 },
+        { "instanceId": "r6i.16xlarge", "sku": "r6i.16xlarge", "hourlyUsd": 4.16 }
+      ]
+    },
+    "Azure": {
+      "eastus": [
+        { "instanceId": "Standard_E8ds_v4", "sku": "e8dsv4", "hourlyUsd": 0.576 },
+        { "instanceId": "Standard_E16ds_v4", "sku": "e16dsv4", "hourlyUsd": 1.152 },
+        { "instanceId": "Standard_E32ds_v4", "sku": "e32dsv4", "hourlyUsd": 2.304 },
+        { "instanceId": "Standard_E64ds_v4", "sku": "e64dsv4", "hourlyUsd": 4.608 },
+        { "instanceId": "Standard_D4s_v5", "sku": "d4sv5", "hourlyUsd": 0.192 },
+        { "instanceId": "Standard_D8s_v5", "sku": "d8sv5", "hourlyUsd": 0.384 },
+        { "instanceId": "Standard_D16s_v5", "sku": "d16sv5", "hourlyUsd": 0.768 },
+        { "instanceId": "Standard_D32s_v5", "sku": "d32sv5", "hourlyUsd": 1.536 },
+        { "instanceId": "Standard_D64s_v5", "sku": "d64sv5", "hourlyUsd": 3.072 },
+        { "instanceId": "Standard_F4s_v2", "sku": "f4sv2", "hourlyUsd": 0.169 },
+        { "instanceId": "Standard_F8s_v2", "sku": "f8sv2", "hourlyUsd": 0.338 },
+        { "instanceId": "Standard_F16s_v2", "sku": "f16sv2", "hourlyUsd": 0.677 },
+        { "instanceId": "Standard_F32s_v2", "sku": "f32sv2", "hourlyUsd": 1.353 },
+        { "instanceId": "Standard_F64s_v2", "sku": "f64sv2", "hourlyUsd": 2.706 },
+        { "instanceId": "Standard_E4s_v5", "sku": "e4sv5", "hourlyUsd": 0.252 },
+        { "instanceId": "Standard_E8s_v5", "sku": "e8sv5", "hourlyUsd": 0.504 },
+        { "instanceId": "Standard_E16s_v5", "sku": "e16sv5", "hourlyUsd": 1.008 },
+        { "instanceId": "Standard_E32s_v5", "sku": "e32sv5", "hourlyUsd": 2.016 },
+        { "instanceId": "Standard_E64s_v5", "sku": "e64sv5", "hourlyUsd": 4.032 }
+      ],
+      "centralindia": [
+        { "instanceId": "Standard_E8ds_v4", "sku": "e8dsv4", "hourlyUsd": 0.604 },
+        { "instanceId": "Standard_E16ds_v4", "sku": "e16dsv4", "hourlyUsd": 1.208 },
+        { "instanceId": "Standard_E32ds_v4", "sku": "e32dsv4", "hourlyUsd": 2.416 },
+        { "instanceId": "Standard_E64ds_v4", "sku": "e64dsv4", "hourlyUsd": 4.832 },
+        { "instanceId": "Standard_D4s_v5", "sku": "d4sv5", "hourlyUsd": 0.202 },
+        { "instanceId": "Standard_D8s_v5", "sku": "d8sv5", "hourlyUsd": 0.404 },
+        { "instanceId": "Standard_D16s_v5", "sku": "d16sv5", "hourlyUsd": 0.808 },
+        { "instanceId": "Standard_D32s_v5", "sku": "d32sv5", "hourlyUsd": 1.616 },
+        { "instanceId": "Standard_D64s_v5", "sku": "d64sv5", "hourlyUsd": 3.232 },
+        { "instanceId": "Standard_F4s_v2", "sku": "f4sv2", "hourlyUsd": 0.17 },
+        { "instanceId": "Standard_F8s_v2", "sku": "f8sv2", "hourlyUsd": 0.34 },
+        { "instanceId": "Standard_F16s_v2", "sku": "f16sv2", "hourlyUsd": 0.68 },
+        { "instanceId": "Standard_F32s_v2", "sku": "f32sv2", "hourlyUsd": 1.36 },
+        { "instanceId": "Standard_F64s_v2", "sku": "f64sv2", "hourlyUsd": 2.72 },
+        { "instanceId": "Standard_E4s_v5", "sku": "e4sv5", "hourlyUsd": 0.26 },
+        { "instanceId": "Standard_E8s_v5", "sku": "e8sv5", "hourlyUsd": 0.52 },
+        { "instanceId": "Standard_E16s_v5", "sku": "e16sv5", "hourlyUsd": 1.04 },
+        { "instanceId": "Standard_E32s_v5", "sku": "e32sv5", "hourlyUsd": 2.08 },
+        { "instanceId": "Standard_E64s_v5", "sku": "e64sv5", "hourlyUsd": 4.16 }
+      ]
+    },
+    "GCP": {
+      "us-east1": [
+        { "instanceId": "n2-highmem-8", "sku": "n2-highmem-8", "hourlyUsd": 0.524056 },
+        { "instanceId": "n2-highmem-16", "sku": "n2-highmem-16", "hourlyUsd": 1.048112 },
+        { "instanceId": "n2-highmem-32", "sku": "n2-highmem-32", "hourlyUsd": 2.096224 },
+        { "instanceId": "n2-highmem-64", "sku": "n2-highmem-64", "hourlyUsd": 4.192448 },
+        { "instanceId": "n2-standard-4", "sku": "n2-standard-4", "hourlyUsd": 0.194236 },
+        { "instanceId": "n2-standard-8", "sku": "n2-standard-8", "hourlyUsd": 0.388472 },
+        { "instanceId": "n2-standard-16", "sku": "n2-standard-16", "hourlyUsd": 0.776944 },
+        { "instanceId": "n2-standard-32", "sku": "n2-standard-32", "hourlyUsd": 1.553888 },
+        { "instanceId": "n2-standard-64", "sku": "n2-standard-64", "hourlyUsd": 3.107776 },
+        { "instanceId": "c3-standard-4", "sku": "c3-standard-4", "hourlyUsd": 0.201608 },
+        { "instanceId": "c3-standard-8", "sku": "c3-standard-8", "hourlyUsd": 0.403216 },
+        { "instanceId": "c3-standard-16", "sku": "c3-standard-16", "hourlyUsd": 0.806432 },
+        { "instanceId": "c3-standard-32", "sku": "c3-standard-32", "hourlyUsd": 1.612864 },
+        { "instanceId": "c3-standard-64", "sku": "c3-standard-64", "hourlyUsd": 3.225728 },
+        { "instanceId": "n2-highmem-4", "sku": "n2-highmem-4", "hourlyUsd": 0.262028 }
+      ],
+      "asia-south1": [
+        { "instanceId": "n2-highmem-8", "sku": "n2-highmem-8", "hourlyUsd": 0.629392 },
+        { "instanceId": "n2-highmem-16", "sku": "n2-highmem-16", "hourlyUsd": 1.258784 },
+        { "instanceId": "n2-highmem-32", "sku": "n2-highmem-32", "hourlyUsd": 2.517568 },
+        { "instanceId": "n2-highmem-64", "sku": "n2-highmem-64", "hourlyUsd": 5.035136 },
+        { "instanceId": "n2-standard-4", "sku": "n2-standard-4", "hourlyUsd": 0.233288 },
+        { "instanceId": "n2-standard-8", "sku": "n2-standard-8", "hourlyUsd": 0.466576 },
+        { "instanceId": "n2-standard-16", "sku": "n2-standard-16", "hourlyUsd": 0.933152 },
+        { "instanceId": "n2-standard-32", "sku": "n2-standard-32", "hourlyUsd": 1.866304 },
+        { "instanceId": "n2-standard-64", "sku": "n2-standard-64", "hourlyUsd": 3.732608 },
+        { "instanceId": "c3-standard-4", "sku": "c3-standard-4", "hourlyUsd": 0.20967232 },
+        { "instanceId": "c3-standard-8", "sku": "c3-standard-8", "hourlyUsd": 0.41934464 },
+        { "instanceId": "c3-standard-16", "sku": "c3-standard-16", "hourlyUsd": 0.83868928 },
+        { "instanceId": "c3-standard-32", "sku": "c3-standard-32", "hourlyUsd": 1.67737856 },
+        { "instanceId": "c3-standard-64", "sku": "c3-standard-64", "hourlyUsd": 3.35475712 },
+        { "instanceId": "n2-highmem-4", "sku": "n2-highmem-4", "hourlyUsd": 0.314696 }
+      ]
+    }
+  },
+  "dbuPricing": [
+    { "cloud": "AWS", "regionId": "us-east-1", "workloadType": "DWH", "computeId": "classic-sql", "ratePerDbu": 0.22, "includesCloudInstance": false },
+    { "cloud": "AWS", "regionId": "us-east-1", "workloadType": "DWH", "computeId": "pro-sql", "ratePerDbu": 0.55, "includesCloudInstance": false },
+    { "cloud": "AWS", "regionId": "us-east-1", "workloadType": "DWH", "computeId": "serverless-sql", "ratePerDbu": 0.7, "includesCloudInstance": true },
+    { "cloud": "AWS", "regionId": "ap-south-1", "workloadType": "DWH", "computeId": "classic-sql", "ratePerDbu": 0.22, "includesCloudInstance": false },
+    { "cloud": "AWS", "regionId": "ap-south-1", "workloadType": "DWH", "computeId": "pro-sql", "ratePerDbu": 0.61, "includesCloudInstance": false },
+    { "cloud": "AWS", "regionId": "ap-south-1", "workloadType": "DWH", "computeId": "serverless-sql", "ratePerDbu": 0.77, "includesCloudInstance": true },
+    { "cloud": "Azure", "regionId": "eastus", "workloadType": "DWH", "computeId": "classic-sql", "ratePerDbu": 0.22, "includesCloudInstance": false },
+    { "cloud": "Azure", "regionId": "eastus", "workloadType": "DWH", "computeId": "pro-sql", "ratePerDbu": 0.55, "includesCloudInstance": false },
+    { "cloud": "Azure", "regionId": "eastus", "workloadType": "DWH", "computeId": "serverless-sql", "ratePerDbu": 0.7, "includesCloudInstance": true },
+    { "cloud": "Azure", "regionId": "centralindia", "workloadType": "DWH", "computeId": "classic-sql", "ratePerDbu": 0.22, "includesCloudInstance": false },
+    { "cloud": "Azure", "regionId": "centralindia", "workloadType": "DWH", "computeId": "pro-sql", "ratePerDbu": 0.61, "includesCloudInstance": false },
+    { "cloud": "Azure", "regionId": "centralindia", "workloadType": "DWH", "computeId": "serverless-sql", "ratePerDbu": 0.77, "includesCloudInstance": true },
+    { "cloud": "GCP", "regionId": "us-east1", "workloadType": "DWH", "computeId": "classic-sql", "ratePerDbu": 0.22, "includesCloudInstance": false },
+    { "cloud": "GCP", "regionId": "us-east1", "workloadType": "DWH", "computeId": "pro-sql", "ratePerDbu": 0.55, "includesCloudInstance": false },
+    { "cloud": "GCP", "regionId": "us-east1", "workloadType": "DWH", "computeId": "serverless-sql", "ratePerDbu": 0.7, "includesCloudInstance": true },
+    { "cloud": "GCP", "regionId": "asia-south1", "workloadType": "DWH", "computeId": "classic-sql", "ratePerDbu": 0.22, "includesCloudInstance": false },
+    { "cloud": "GCP", "regionId": "asia-south1", "workloadType": "DWH", "computeId": "pro-sql", "ratePerDbu": 0.61, "includesCloudInstance": false },
+    { "cloud": "GCP", "regionId": "asia-south1", "workloadType": "DWH", "computeId": "serverless-sql", "ratePerDbu": 0.77, "includesCloudInstance": true },
+    { "cloud": "AWS", "regionId": "us-east-1", "workloadType": "ETL", "computeId": "jobs-classic", "ratePerDbu": 0.2, "includesCloudInstance": false },
+    { "cloud": "AWS", "regionId": "us-east-1", "workloadType": "ETL", "computeId": "jobs-serverless", "ratePerDbu": 0.45, "includesCloudInstance": true },
+    { "cloud": "AWS", "regionId": "ap-south-1", "workloadType": "ETL", "computeId": "jobs-classic", "ratePerDbu": 0.2, "includesCloudInstance": false },
+    { "cloud": "AWS", "regionId": "ap-south-1", "workloadType": "ETL", "computeId": "jobs-serverless", "ratePerDbu": 0.47, "includesCloudInstance": true },
+    { "cloud": "Azure", "regionId": "eastus", "workloadType": "ETL", "computeId": "jobs-classic", "ratePerDbu": 0.3, "includesCloudInstance": false },
+    { "cloud": "Azure", "regionId": "eastus", "workloadType": "ETL", "computeId": "jobs-serverless", "ratePerDbu": 0.45, "includesCloudInstance": true },
+    { "cloud": "Azure", "regionId": "centralindia", "workloadType": "ETL", "computeId": "jobs-classic", "ratePerDbu": 0.3, "includesCloudInstance": false },
+    { "cloud": "Azure", "regionId": "centralindia", "workloadType": "ETL", "computeId": "jobs-serverless", "ratePerDbu": 0.47, "includesCloudInstance": true },
+    { "cloud": "GCP", "regionId": "us-east1", "workloadType": "ETL", "computeId": "jobs-classic", "ratePerDbu": 0.2, "includesCloudInstance": false },
+    { "cloud": "GCP", "regionId": "us-east1", "workloadType": "ETL", "computeId": "jobs-serverless", "ratePerDbu": 0.45, "includesCloudInstance": true },
+    { "cloud": "GCP", "regionId": "asia-south1", "workloadType": "ETL", "computeId": "jobs-classic", "ratePerDbu": 0.2, "includesCloudInstance": false },
+    { "cloud": "GCP", "regionId": "asia-south1", "workloadType": "ETL", "computeId": "jobs-serverless", "ratePerDbu": 0.47, "includesCloudInstance": true },
+    { "cloud": "AWS", "regionId": "us-east-1", "workloadType": "DEV", "computeId": "all-purpose-classic", "ratePerDbu": 0.65, "includesCloudInstance": false },
+    { "cloud": "AWS", "regionId": "ap-south-1", "workloadType": "DEV", "computeId": "all-purpose-classic", "ratePerDbu": 0.65, "includesCloudInstance": false },
+    { "cloud": "Azure", "regionId": "eastus", "workloadType": "DEV", "computeId": "all-purpose-classic", "ratePerDbu": 0.55, "includesCloudInstance": false },
+    { "cloud": "Azure", "regionId": "centralindia", "workloadType": "DEV", "computeId": "all-purpose-classic", "ratePerDbu": 0.55, "includesCloudInstance": false },
+    { "cloud": "GCP", "regionId": "us-east1", "workloadType": "DEV", "computeId": "all-purpose-classic", "ratePerDbu": 0.65, "includesCloudInstance": false },
+    { "cloud": "GCP", "regionId": "asia-south1", "workloadType": "DEV", "computeId": "all-purpose-classic", "ratePerDbu": 0.65, "includesCloudInstance": false }
+  ],
+  "workloadCatalog": {
+    "DWH": {
+      "label": "Data warehouse",
+      "description": "Interactive SQL and BI dashboards",
+      "compute": [
+        { "id": "serverless-sql", "label": "Serverless SQL", "multiplier": 1.28 },
+        { "id": "pro-sql", "label": "Pro SQL Warehouse", "multiplier": 1.12 },
+        { "id": "classic-sql", "label": "Classic SQL Warehouse", "multiplier": 1 }
+      ]
+    },
+    "ETL": {
+      "label": "ETL pipeline",
+      "description": "Scheduled ingestion and transformations",
+      "compute": [
+        { "id": "jobs-classic", "label": "Jobs Classic clusters", "multiplier": 1 },
+        { "id": "jobs-serverless", "label": "Jobs Serverless", "multiplier": 1 }
+      ]
+    },
+    "DEV": {
+      "label": "Development",
+      "description": "Interactive notebooks and development workloads",
+      "compute": [
+        { "id": "all-purpose-classic", "label": "Classic All-Purpose Compute", "multiplier": 1 }
+      ]
+    }
+  },
+  "computeFamilies": {
+    "order": ["General purpose", "Compute optimized", "Memory optimized", "Storage optimized"],
+    "featured": ["General purpose", "Compute optimized", "Memory optimized"],
+    "guidance": {
+      "General purpose": "Best default when requirements are unclear",
+      "Compute optimized": "Structured streaming, Optimize, and Vacuum",
+      "Memory optimized": "ML, heavy shuffle, and spill workloads",
+      "Storage optimized": "Large local-storage and cache-heavy workloads"
+    }
+  },
+  "instanceMappings": {
+    "driverInstanceForWarehouseByCloud": {
+      "AWS": "warehouse.instance",
+      "Azure": "Standard_E{warehouse.vcpu}ds_v4",
+      "GCP": "n2-highmem-{warehouse.vcpu}"
+    },
+    "workerInstanceForWarehouseByCloud": {
+      "AWS": "i3.2xlarge",
+      "Azure": "Standard_E8ds_v4",
+      "GCP": "n2-highmem-8"
+    },
+    "azureVmSkuNormalization": {
+      "description": "The pricing table uses Vantage compact SKU IDs while the instance catalog uses Azure display IDs.",
+      "examples": {
+        "Standard_E8ds_v4": "e8dsv4",
+        "Standard_D8s_v5": "d8sv5"
+      }
+    }
+  },
+  "infrastructureAssumptions": {
+    "azureManagedDisk": {
+      "diskCountPerDriverOrWorker": 1,
+      "capacityGb": 256,
+      "type": "Premium SSD LRS",
+      "includedInEstimate": false,
+      "note": "Attached disk charges are shown in the reference UI but excluded until a disk rate is configured."
+    },
+    "taxesIncluded": false,
+    "reservedPricingDiscountsIncluded": false,
+    "dataTransferIncluded": false,
+    "serverlessDbuIncludesCloudInstance": true,
+    "classicDbuIncludesCloudInstance": false
+  },
+  "calculationModel": {
+    "runtime": "monthlyHours is hoursPerDay * daysPerMonth for monthly schedules, or round(hoursPerDay * daysPerWeek * 730 / 168) for weekly schedules; 24 hours/day and 31 days/month is fixed at 730 hours.",
+    "dwh": {
+      "dbuPerHour": "warehouse.dbuPerHour",
+      "infrastructure": "Classic and Pro add one driver plus warehouse.workers worker VM rates; Serverless infrastructure is included in its DBU rate.",
+      "cost": "dbuPerHour * dbuRatePerHour * runtime + infrastructureCost unless includesCloudInstance is true"
+    },
+    "etl": {
+      "pipelines": "workload.pipelines",
+      "jobsClassicDbuPerHour": "driver.dbuPerHour + workload.workerCount * worker.dbuPerHour",
+      "jobsServerlessDbuPerHour": "workload.serverlessDbuPerHour",
+      "cost": "DBU cost plus VM infrastructure cost for Jobs Classic; DBU cost only for Jobs Serverless when includesCloudInstance is true"
+    },
+    "dev": {
+      "dbuPerHour": "driver.dbuPerHour + workload.workerCount * worker.dbuPerHour",
+      "cost": "DBU cost plus modeled driver and worker VM infrastructure cost"
+    },
+    "fallback": "If no DBU rate is configured, infrastructureCost is multiplied by the selected compute.multiplier.",
+    "annualEstimateMultiplier": 12,
+    "displayCurrencyConversion": "INR amount = USD amount * usdToInrRate; USD is unchanged"
+  }
+}

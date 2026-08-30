@@ -1,9 +1,32 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { compareStrategies } from "@/lib/decision-engine";
+import { compareStrategies, estimatePortfolioCost } from "@/lib/decision-engine";
+import {
+  calculateWorkloadCost,
+  getPricingOptions,
+  isInstanceForCloud,
+  isWarehouseSize,
+  WAREHOUSE_SIZES,
+} from "@/lib/pricing";
 import { isRegionForCloud, REGIONS_BY_CLOUD } from "@/lib/regions";
-import type { Cloud, DecisionState, DisplayCurrency, WorkloadType } from "@/lib/types";
+import type {
+  Cloud,
+  CostPeriod,
+  ComputeId,
+  DecisionState,
+  DisplayCurrency,
+  WarehouseSize,
+  Workload,
+  WorkloadCategory,
+} from "@/lib/types";
+import {
+  changeWorkloadType,
+  createDefaultWorkload,
+  isComputeForWorkload,
+  nextWorkloadId,
+  normalizeWorkloadForCloud,
+} from "@/lib/workloads";
 
 type ConnectionState = "checking" | "connected" | "unavailable";
 
@@ -29,13 +52,8 @@ export function useWebMCP(
   const [connection, setConnection] = useState<ConnectionState>("checking");
   const [availableTools, setAvailableTools] = useState<WebMCPToolSummary[]>([]);
 
-  useEffect(() => {
-    decisionRef.current = decision;
-  }, [decision]);
-
-  useEffect(() => {
-    changeRef.current = onDecisionChange;
-  }, [onDecisionChange]);
+  useEffect(() => { decisionRef.current = decision; }, [decision]);
+  useEffect(() => { changeRef.current = onDecisionChange; }, [onDecisionChange]);
 
   useEffect(() => {
     const modelContext = document.modelContext;
@@ -52,46 +70,155 @@ export function useWebMCP(
       changeRef.current(next);
       return next;
     };
+    const updateWorkload = (
+      current: DecisionState,
+      workloadId: string,
+      update: (workload: Workload) => Workload,
+    ): DecisionState => {
+      if (!current.workloads.some((workload) => workload.id === workloadId)) {
+        throw new Error(`Unknown workload: ${workloadId}`);
+      }
+      return {
+        ...current,
+        workloads: current.workloads.map((workload) => workload.id === workloadId ? update(workload) : workload),
+      };
+    };
+
+    const workloadProperties = {
+      name: { type: "string" },
+      type: { type: "string", enum: ["DWH", "ETL", "DEV"] },
+      computeId: { type: "string", enum: ["serverless-sql", "pro-sql", "classic-sql", "jobs-classic", "jobs-serverless", "all-purpose-classic"] },
+      warehouseSize: { type: "string", enum: WAREHOUSE_SIZES },
+      driverInstance: { type: "string" },
+      workerInstance: { type: "string" },
+      workerCount: { type: "number", minimum: 1, maximum: 1000 },
+      pipelines: { type: "number", minimum: 1, maximum: 1000 },
+      serverlessDbuPerHour: { type: "number", minimum: 0.01, maximum: 10000 },
+    };
 
     const tools: WebMCPTool[] = [
       {
         name: "get_decision_state",
         title: "Get decision state",
-        description: "Read the complete StrategyShifu workload, requirements, budget, assumptions, and current recommendation.",
+        description: "Read the project workloads, active workload, requirements, budget, regional assumptions, and current recommendation.",
         execute: () => result({ decision: decisionRef.current, comparison: compareStrategies(decisionRef.current) }),
       },
       {
-        name: "set_workload",
-        title: "Set workload",
-        description: "Update one or more high-level workload attributes and immediately recompute the shared decision.",
+        name: "list_workloads",
+        title: "List workloads",
+        description: "List every configured workload and identify the workload currently being edited.",
+        execute: () => result({
+          activeWorkloadId: decisionRef.current.activeWorkloadId,
+          workloads: decisionRef.current.workloads,
+        }),
+      },
+      {
+        name: "add_workload",
+        title: "Add workload",
+        description: "Add a named DWH, ETL, or development workload with category-appropriate defaults and select it for editing.",
         inputSchema: {
           type: "object",
           properties: {
-            type: { type: "string", enum: ["streaming", "batch"] },
-            description: { type: "string" },
-            dataVolumeGbPerDay: { type: "number", minimum: 1 },
-            slaMinutes: { type: "number", description: "Target SLA in minutes; any numeric value is accepted." },
+            name: { type: "string" },
+            type: { type: "string", enum: ["DWH", "ETL", "DEV"] },
           },
           additionalProperties: false,
         },
         execute: (input) => {
-          const next = mutate((current) => ({
-            ...current,
-            workload: {
-              ...current.workload,
-              ...(input.type ? { type: input.type as WorkloadType } : {}),
-              ...(typeof input.description === "string" ? { description: input.description } : {}),
-              ...(typeof input.dataVolumeGbPerDay === "number" ? { dataVolumeGbPerDay: input.dataVolumeGbPerDay } : {}),
-              ...(typeof input.slaMinutes === "number" ? { slaMinutes: input.slaMinutes } : {}),
-            },
+          const type = (input.type ?? "DWH") as WorkloadCategory;
+          const next = mutate((current) => {
+            const id = nextWorkloadId(current.workloads);
+            const workload = createDefaultWorkload(type, id, current.requirements.cloud, typeof input.name === "string" ? input.name : undefined);
+            return { ...current, workloads: [...current.workloads, workload], activeWorkloadId: id };
+          });
+          return result({ updated: true, activeWorkloadId: next.activeWorkloadId, workloads: next.workloads, comparison: compareStrategies(next) });
+        },
+      },
+      {
+        name: "update_workload",
+        title: "Update workload",
+        description: "Update a workload's identity, category, compute, or category-specific sizing fields.",
+        inputSchema: {
+          type: "object",
+          properties: { workloadId: { type: "string" }, ...workloadProperties },
+          required: ["workloadId"],
+          additionalProperties: false,
+        },
+        execute: (input) => {
+          if (typeof input.workloadId !== "string") throw new Error("workloadId is required");
+          const next = mutate((current) => updateWorkload(current, input.workloadId as string, (existing) => {
+            const type = typeof input.type === "string" ? input.type as WorkloadCategory : existing.type;
+            let workload = type === existing.type ? existing : changeWorkloadType(existing, type);
+            if (typeof input.computeId === "string") {
+              if (!isComputeForWorkload(type, input.computeId)) throw new Error(`${input.computeId} is not valid for ${type}.`);
+              workload = { ...workload, computeId: input.computeId };
+            }
+            if (typeof input.warehouseSize === "string" && !isWarehouseSize(input.warehouseSize)) throw new Error("Unknown warehouseSize.");
+            const cloud = current.requirements.cloud;
+            if (typeof input.driverInstance === "string" && !isInstanceForCloud(cloud, input.driverInstance)) throw new Error(`Unknown driver instance for ${cloud}.`);
+            if (typeof input.workerInstance === "string" && !isInstanceForCloud(cloud, input.workerInstance)) throw new Error(`Unknown worker instance for ${cloud}.`);
+            return {
+              ...workload,
+              ...(typeof input.name === "string" ? { name: input.name } : {}),
+              ...(typeof input.warehouseSize === "string" ? { warehouseSize: input.warehouseSize as WarehouseSize } : {}),
+              ...(typeof input.driverInstance === "string" ? { driverInstance: input.driverInstance } : {}),
+              ...(typeof input.workerInstance === "string" ? { workerInstance: input.workerInstance } : {}),
+              ...(typeof input.workerCount === "number" ? { workerCount: input.workerCount } : {}),
+              ...(typeof input.pipelines === "number" ? { pipelines: input.pipelines } : {}),
+              ...(typeof input.serverlessDbuPerHour === "number" ? { serverlessDbuPerHour: input.serverlessDbuPerHour } : {}),
+            };
           }));
-          return result({ updated: true, decision: next, comparison: compareStrategies(next) });
+          return result({ updated: true, workloads: next.workloads, comparison: compareStrategies(next) });
+        },
+      },
+      {
+        name: "remove_workload",
+        title: "Remove workload",
+        description: "Remove one workload from the project. The final remaining workload cannot be removed.",
+        inputSchema: {
+          type: "object",
+          properties: { workloadId: { type: "string" } },
+          required: ["workloadId"],
+          additionalProperties: false,
+        },
+        execute: (input) => {
+          if (typeof input.workloadId !== "string") throw new Error("workloadId is required");
+          const next = mutate((current) => {
+            if (current.workloads.length === 1) throw new Error("The final workload cannot be removed.");
+            if (!current.workloads.some((workload) => workload.id === input.workloadId)) throw new Error(`Unknown workload: ${input.workloadId}`);
+            const workloads = current.workloads.filter((workload) => workload.id !== input.workloadId);
+            return {
+              ...current,
+              workloads,
+              activeWorkloadId: current.activeWorkloadId === input.workloadId ? workloads[0].id : current.activeWorkloadId,
+            };
+          });
+          return result({ updated: true, activeWorkloadId: next.activeWorkloadId, workloads: next.workloads, comparison: compareStrategies(next) });
+        },
+      },
+      {
+        name: "select_workload",
+        title: "Select workload",
+        description: "Choose which configured workload the UI and comparison field should focus on.",
+        inputSchema: {
+          type: "object",
+          properties: { workloadId: { type: "string" } },
+          required: ["workloadId"],
+          additionalProperties: false,
+        },
+        execute: (input) => {
+          if (typeof input.workloadId !== "string") throw new Error("workloadId is required");
+          const next = mutate((current) => {
+            if (!current.workloads.some((workload) => workload.id === input.workloadId)) throw new Error(`Unknown workload: ${input.workloadId}`);
+            return { ...current, activeWorkloadId: input.workloadId as string };
+          });
+          return result({ updated: true, activeWorkloadId: next.activeWorkloadId, comparison: compareStrategies(next) });
         },
       },
       {
         name: "set_requirement",
-        title: "Set technical requirement",
-        description: "Update cloud or private networking requirements and recompute technical compatibility.",
+        title: "Set project requirement",
+        description: "Update the cloud or private-networking requirement. Changing cloud normalizes cluster instances and selects a valid region.",
         inputSchema: {
           type: "object",
           properties: {
@@ -102,27 +229,46 @@ export function useWebMCP(
         },
         execute: (input) => {
           const next = mutate((current) => {
-            const cloud = input.cloud ? (input.cloud as Cloud) : current.requirements.cloud;
-            const nextRegion = isRegionForCloud(cloud, current.assumptions.region)
-              ? current.assumptions.region
-              : REGIONS_BY_CLOUD[cloud][0].value;
+            const cloud = input.cloud ? input.cloud as Cloud : current.requirements.cloud;
+            const cloudChanged = cloud !== current.requirements.cloud;
             return {
               ...current,
               requirements: {
-                ...current.requirements,
-                ...(input.cloud ? { cloud } : {}),
-                ...(typeof input.privateNetworking === "boolean" ? { privateNetworking: input.privateNetworking } : {}),
+                cloud,
+                privateNetworking: typeof input.privateNetworking === "boolean" ? input.privateNetworking : current.requirements.privateNetworking,
               },
-              assumptions: { ...current.assumptions, region: nextRegion },
+              assumptions: {
+                region: cloudChanged ? REGIONS_BY_CLOUD[cloud][0].value : current.assumptions.region,
+              },
+              workloads: cloudChanged ? current.workloads.map((workload) => normalizeWorkloadForCloud(workload, cloud)) : current.workloads,
             };
           });
           return result({ updated: true, decision: next, comparison: compareStrategies(next) });
         },
       },
       {
+        name: "set_region",
+        title: "Set pricing region",
+        description: "Set the provider-native region used for every workload's DBU and VM rates.",
+        inputSchema: {
+          type: "object",
+          properties: { region: { type: "string" } },
+          required: ["region"],
+          additionalProperties: false,
+        },
+        execute: (input) => {
+          if (typeof input.region !== "string") throw new Error("region is required");
+          const next = mutate((current) => {
+            if (!isRegionForCloud(current.requirements.cloud, input.region as string)) throw new Error(`Region ${input.region} is not available for ${current.requirements.cloud}.`);
+            return { ...current, assumptions: { region: input.region as string } };
+          });
+          return result({ updated: true, region: next.assumptions.region, comparison: compareStrategies(next) });
+        },
+      },
+      {
         name: "set_budget",
-        title: "Set monthly budget",
-        description: "Set the monthly USD budget and immediately reconsider all technically valid strategies.",
+        title: "Set project budget",
+        description: "Set the monthly USD budget applied to the complete project of configured workloads.",
         inputSchema: {
           type: "object",
           properties: { monthlyBudgetUsd: { type: "number", minimum: 1 } },
@@ -136,9 +282,33 @@ export function useWebMCP(
         },
       },
       {
+        name: "update_project",
+        title: "Update project",
+        description: "Update the project name or switch the displayed cost period between monthly and annual.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectName: { type: "string", minLength: 1, maxLength: 120 },
+            costPeriod: { type: "string", enum: ["monthly", "annual"] },
+          },
+          additionalProperties: false,
+        },
+        execute: (input) => {
+          const next = mutate((current) => {
+            const projectName = typeof input.projectName === "string" ? input.projectName.trim() : current.projectName;
+            if ("projectName" in input && !projectName) throw new Error("projectName cannot be empty");
+            const costPeriod = input.costPeriod === "annual" || input.costPeriod === "monthly"
+              ? input.costPeriod as CostPeriod
+              : current.costPeriod;
+            return { ...current, projectName, costPeriod };
+          });
+          return result({ updated: true, projectName: next.projectName, costPeriod: next.costPeriod, comparison: compareStrategies(next) });
+        },
+      },
+      {
         name: "set_currency",
         title: "Set display currency",
-        description: "Switch displayed budgets and estimates between USD and INR, with an editable USD to INR conversion rate. Ranking remains based on canonical USD values.",
+        description: "Switch displayed budgets and estimates between USD and INR. Ranking remains in canonical USD.",
         inputSchema: {
           type: "object",
           properties: {
@@ -154,77 +324,103 @@ export function useWebMCP(
           const next = mutate((current) => ({
             ...current,
             currency,
-            usdToInrRate: typeof input.usdToInrRate === "number" && input.usdToInrRate > 0
-              ? input.usdToInrRate
-              : current.usdToInrRate,
+            usdToInrRate: typeof input.usdToInrRate === "number" ? input.usdToInrRate : current.usdToInrRate,
           }));
-          return result({ updated: true, currency: next.currency, usdToInrRate: next.usdToInrRate, comparison: compareStrategies(next) });
+          return result({ updated: true, currency: next.currency, comparison: compareStrategies(next) });
         },
       },
       {
-        name: "set_assumption",
-        title: "Set cost assumption",
-        description: "Update schedule, region, or worker scale assumptions used by every cost estimate.",
+        name: "set_workload_schedule",
+        title: "Set workload schedule",
+        description: "Update runtime for one workload. Schedule affects cost but does not change workload category.",
         inputSchema: {
           type: "object",
           properties: {
+            workloadId: { type: "string" },
             hoursPerDay: { type: "number", minimum: 1, maximum: 24 },
             daysPerMonth: { type: "number", minimum: 1, maximum: 31 },
-            region: { type: "string" },
-            workerScale: { type: "number", minimum: 0.5, maximum: 4 },
           },
+          required: ["workloadId"],
           additionalProperties: false,
         },
         execute: (input) => {
-          const next = mutate((current) => {
-            if (typeof input.region === "string" && !isRegionForCloud(current.requirements.cloud, input.region)) {
-              throw new Error(`Region ${input.region} is not available for ${current.requirements.cloud}.`);
-            }
-            return {
-              ...current,
-              assumptions: {
-                ...current.assumptions,
-                ...(typeof input.hoursPerDay === "number" ? { hoursPerDay: input.hoursPerDay } : {}),
-                ...(typeof input.daysPerMonth === "number" ? { daysPerMonth: input.daysPerMonth } : {}),
-                ...(typeof input.region === "string" ? { region: input.region } : {}),
-                ...(typeof input.workerScale === "number" ? { workerScale: input.workerScale } : {}),
-              },
-            };
-          });
-          return result({ updated: true, assumptions: next.assumptions, comparison: compareStrategies(next) });
+          if (typeof input.workloadId !== "string") throw new Error("workloadId is required");
+          const next = mutate((current) => updateWorkload(current, input.workloadId as string, (workload) => ({
+            ...workload,
+            ...(typeof input.hoursPerDay === "number" ? { hoursPerDay: input.hoursPerDay } : {}),
+            ...(typeof input.daysPerMonth === "number" ? { daysPerMonth: input.daysPerMonth } : {}),
+          })));
+          return result({ updated: true, workloads: next.workloads, comparison: compareStrategies(next) });
+        },
+      },
+      {
+        name: "set_dwh_sizing",
+        title: "Set DWH sizing",
+        description: "Set the warehouse size for a DWH workload.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            workloadId: { type: "string" },
+            warehouseSize: { type: "string", enum: WAREHOUSE_SIZES },
+          },
+          required: ["workloadId", "warehouseSize"],
+          additionalProperties: false,
+        },
+        execute: (input) => {
+          if (typeof input.workloadId !== "string" || typeof input.warehouseSize !== "string" || !isWarehouseSize(input.warehouseSize)) throw new Error("A valid workloadId and warehouseSize are required.");
+          const next = mutate((current) => updateWorkload(current, input.workloadId as string, (workload) => {
+            if (workload.type !== "DWH") throw new Error("set_dwh_sizing only applies to DWH workloads.");
+            return { ...workload, warehouseSize: input.warehouseSize as WarehouseSize };
+          }));
+          return result({ updated: true, workloads: next.workloads, comparison: compareStrategies(next) });
+        },
+      },
+      {
+        name: "get_pricing_options",
+        title: "Get regional pricing options",
+        description: "Inspect compute, sizing, DBU, and VM options for a workload category in the active cloud and region.",
+        inputSchema: {
+          type: "object",
+          properties: { workloadType: { type: "string", enum: ["DWH", "ETL", "DEV"] } },
+          required: ["workloadType"],
+          additionalProperties: false,
+        },
+        execute: (input) => {
+          const type = input.workloadType as WorkloadCategory;
+          if (!["DWH", "ETL", "DEV"].includes(type)) throw new Error("workloadType is required");
+          return result(getPricingOptions(decisionRef.current.requirements.cloud, decisionRef.current.assumptions.region, type));
         },
       },
       {
         name: "compare_strategies",
-        title: "Compare strategies",
-        description: "Evaluate technical fit first, then budget fit, cost efficiency, and operational simplicity for all strategies.",
+        title: "Compare active workload options",
+        description: "Compare category-valid compute options for the selected workload against technical requirements and total project budget.",
         execute: () => result(compareStrategies(decisionRef.current)),
       },
       {
         name: "get_cost_estimates",
-        title: "Get cost estimates",
-        description: "Return transparent monthly estimates for all strategies with the assumptions used.",
-        execute: () => {
-          const comparison = compareStrategies(decisionRef.current);
-          return result({
-            assumptions: decisionRef.current.assumptions,
-            workloadVolumeGbPerDay: decisionRef.current.workload.dataVolumeGbPerDay,
-            estimates: comparison.evaluations.map(({ strategy, estimatedCost }) => ({
-              strategyId: strategy.id,
-              strategy: strategy.name,
-              estimatedMonthlyCostUsd: estimatedCost,
-            })),
-            disclaimer: "Reference demo pricing; not a live Databricks quote.",
-          });
-        },
+        title: "Get project cost estimates",
+        description: "Return configured monthly pricing components for every workload and the total project.",
+        execute: () => result({
+          cloud: decisionRef.current.requirements.cloud,
+          region: decisionRef.current.assumptions.region,
+          workloads: decisionRef.current.workloads.map((workload) => ({
+            workload,
+            costBreakdown: calculateWorkloadCost(workload, decisionRef.current),
+          })),
+          // Keep the old key as a compatibility alias for existing agents.
+          estimatedProjectMonthlyCostUsd: estimatePortfolioCost(decisionRef.current),
+          estimatedPortfolioMonthlyCostUsd: estimatePortfolioCost(decisionRef.current),
+          disclaimer: "Planning list rates; taxes, disks, data transfer, and reserved-pricing discounts are excluded.",
+        }),
       },
       {
         name: "get_recommendation",
-        title: "Get recommendation",
-        description: "Return the best strategy that satisfies hard technical constraints and the current monthly budget.",
+        title: "Get active workload recommendation",
+        description: "Return the best compute option for the active workload that satisfies technical constraints and total project budget.",
         execute: () => {
           const comparison = compareStrategies(decisionRef.current);
-          return result({ recommendation: comparison.recommendation, summary: comparison.summary });
+          return result({ activeWorkload: comparison.activeWorkload, recommendation: comparison.recommendation, summary: comparison.summary });
         },
       },
     ];

@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "StrategyShifu — Decide with your agent",
   description:
-    "An agent-ready technical decision engine for comparing Databricks architecture strategies.",
+    "An agent-ready decision engine for regional Databricks SQL warehouse sizing and pricing.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

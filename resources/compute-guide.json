@@ -1,0 +1,127 @@
+{
+  "defaultRecommendation": {
+    "computeId": "serverless-sql",
+    "title": "Our default recommendation: Serverless",
+    "description": "It combines the quickest startup, the most responsive scaling, and every SQL performance capability."
+  },
+  "sqlWarehouseTypes": [
+    {
+      "id": "serverless-sql",
+      "name": "Serverless",
+      "eyebrow": "Recommended for most workloads",
+      "summary": "The fastest, most hands-off option for BI, exploratory analysis, and SQL ETL.",
+      "icon": "Sparkles",
+      "startup": "Typically 2–6 seconds",
+      "infrastructure": "Managed by Databricks",
+      "scaling": "AI-assisted, rapid autoscaling",
+      "bestFor": ["Bursty or unpredictable demand", "Low-latency dashboards", "Teams that want minimal operations"],
+      "recommended": true,
+      "capabilities": {
+        "photon-engine": true,
+        "predictive-io": true,
+        "intelligent-workload-management": true,
+        "genie": true
+      }
+    },
+    {
+      "id": "pro-sql",
+      "name": "Pro",
+      "eyebrow": "For custom networking",
+      "summary": "Advanced SQL performance with compute running inside your cloud account.",
+      "icon": "Network",
+      "startup": "Typically around 4 minutes",
+      "infrastructure": "Runs in your cloud account",
+      "scaling": "Threshold-based autoscaling",
+      "bestFor": ["Private or hybrid networking", "Database federation", "Regions without serverless"],
+      "recommended": false,
+      "capabilities": {
+        "photon-engine": true,
+        "predictive-io": true,
+        "intelligent-workload-management": false,
+        "genie": true
+      }
+    },
+    {
+      "id": "classic-sql",
+      "name": "Classic",
+      "eyebrow": "Entry-level performance",
+      "summary": "A straightforward warehouse for basic interactive queries and data exploration.",
+      "icon": "ServerCog",
+      "startup": "Typically around 4 minutes",
+      "infrastructure": "Runs in your cloud account",
+      "scaling": "Threshold-based autoscaling",
+      "bestFor": ["Basic data exploration", "Established classic setups", "Workloads without advanced IO needs"],
+      "recommended": false,
+      "capabilities": {
+        "photon-engine": true,
+        "predictive-io": false,
+        "intelligent-workload-management": false,
+        "genie": false
+      }
+    }
+  ],
+  "sqlCapabilities": [
+    {
+      "id": "photon-engine",
+      "name": "Photon engine",
+      "icon": "Zap",
+      "description": "A vectorized query engine that accelerates existing SQL and DataFrame workloads."
+    },
+    {
+      "id": "predictive-io",
+      "name": "Predictive I/O",
+      "icon": "Gauge",
+      "description": "Uses intelligent access patterns to scan less data and speed up selective queries."
+    },
+    {
+      "id": "intelligent-workload-management",
+      "name": "Intelligent workload management",
+      "icon": "Sparkles",
+      "description": "Predicts query resource needs and dynamically manages capacity, queues, and scaling."
+    },
+    {
+      "id": "genie",
+      "name": "Genie",
+      "icon": "MessageCircleMore",
+      "description": "Natural-language analytics through Genie Agents, formerly known as Genie Spaces."
+    }
+  ],
+  "pipelineEditions": ["Classic Core", "Classic Pro", "Classic Advanced", "Serverless"],
+  "pipelineFeatures": [
+    {
+      "name": "Basic capabilities",
+      "detail": "Declarative batch and streaming pipelines",
+      "values": [true, true, true, true]
+    },
+    {
+      "name": "Change data capture",
+      "detail": "Process source changes incrementally",
+      "values": [false, true, true, true]
+    },
+    {
+      "name": "Data quality",
+      "detail": "Define expectations and handle invalid records",
+      "values": [false, false, true, true]
+    },
+    {
+      "name": "Photon",
+      "detail": "Vectorized execution for faster processing",
+      "values": ["Optional", "Optional", "Optional", true]
+    },
+    {
+      "name": "Enzyme",
+      "detail": "Incremental refresh for materialized views",
+      "values": [false, false, false, true]
+    },
+    {
+      "name": "Stream pipelining",
+      "detail": "Streaming acceleration for lower latency",
+      "values": [false, false, false, true]
+    }
+  ],
+  "notes": [
+    "Capabilities and startup guidance are based on the Databricks SQL warehouse type documentation. Availability can vary by cloud and region.",
+    "On Classic pipelines, Photon is optional and uses a 2.9× DBU emission rate compared with non-Photon execution.",
+    "Feature availability and product naming can vary by cloud, region, and contract."
+  ]
+}

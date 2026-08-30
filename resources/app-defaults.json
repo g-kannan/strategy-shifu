@@ -1,0 +1,85 @@
+{
+  "project": {
+    "defaultName": "Untitled project",
+    "maxNameLength": 100
+  },
+  "selection": {
+    "defaultCloud": "AWS",
+    "defaultRegion": "ap-south-1",
+    "defaultWarehouseSize": "2X-Small",
+    "defaultEstimatePeriod": "monthly",
+    "defaultDisplayCurrency": "USD",
+    "defaultUsdToInrRate": 95
+  },
+  "supportedDisplayOptions": {
+    "estimatePeriods": ["monthly", "annual"],
+    "currencies": ["USD", "INR"]
+  },
+  "defaultWorkload": {
+    "id": 1,
+    "type": "DWH",
+    "name": "Primary DWH",
+    "compute": "serverless-sql",
+    "scheduleMode": "monthly",
+    "hoursPerDay": 24,
+    "daysPerMonth": 31,
+    "daysPerWeek": 7,
+    "monthlyHours": 730,
+    "pipelines": 1,
+    "driverInstance": "i3.2xlarge",
+    "workerInstance": "i3.2xlarge",
+    "workerCount": 2,
+    "serverlessDbuPerHour": 4
+  },
+  "newWorkloadDefaults": {
+    "scheduleMode": "monthly",
+    "hoursPerDay": 24,
+    "daysPerMonth": 31,
+    "daysPerWeek": 7,
+    "monthlyHours": 730,
+    "pipelines": 1,
+    "workerCount": 2,
+    "serverlessDbuPerHour": 4
+  },
+  "schedulePresets": {
+    "always": {
+      "label": "24/7 Always on",
+      "hoursPerDay": 24,
+      "daysPerMonth": 31,
+      "daysPerWeek": 7
+    },
+    "business": {
+      "label": "Business hours",
+      "hoursPerDay": 8,
+      "daysPerMonth": 22,
+      "daysPerWeek": 5
+    },
+    "batch": {
+      "label": "Daily batch",
+      "hoursPerDay": 3,
+      "daysPerMonth": 30,
+      "daysPerWeek": 7
+    }
+  },
+  "inputConstraints": {
+    "hoursPerDay": { "min": 1, "max": 24 },
+    "daysPerMonth": { "min": 1, "max": 31 },
+    "daysPerWeek": { "min": 1, "max": 7 },
+    "pipelines": { "min": 1, "max": 1000 },
+    "workerCount": { "min": 1, "max": 1000 },
+    "serverlessDbuPerHour": { "min": 0.01, "max": 10000 },
+    "usdToInrRate": { "min": 1, "max": 1000 }
+  },
+  "runtime": {
+    "hoursPerMonth": 730,
+    "weeklyToMonthlyFormula": "round(hoursPerDay * daysPerWeek * 730 / 168)",
+    "fullMonthOverride": "24 hours/day and 31 days/month returns 730 hours"
+  },
+  "shareLink": {
+    "currentVersion": 2,
+    "cloudCodes": { "AWS": "A", "Azure": "Z", "GCP": "G" },
+    "estimatePeriodCodes": { "monthly": null, "annual": "Y" },
+    "currencyCodes": { "USD": null, "INR": "I" },
+    "maxWorkloadsOnDecode": 20
+  }
+}

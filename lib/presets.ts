@@ -1,29 +1,39 @@
 import type { DecisionState } from "./types";
+import { createDefaultWorkload } from "./workloads";
 
-export const STREAMING_PRESET: DecisionState = {
-  workload: {
-    type: "streaming",
-    description: "Process clickstream and transaction events continuously for near-real-time analytics.",
-    dataVolumeGbPerDay: 50,
-    slaMinutes: 5,
-  },
+const primaryDwh = createDefaultWorkload("DWH", "workload-1", "AWS", "DataWarehouse");
+
+export const PRIMARY_DWH_PRESET: DecisionState = {
+  projectName: "Untitled project",
+  costPeriod: "monthly",
+  workloads: [primaryDwh],
+  activeWorkloadId: primaryDwh.id,
   requirements: { cloud: "AWS", privateNetworking: true },
-  budget: 1000,
-  assumptions: { hoursPerDay: 24, daysPerMonth: 30, region: "us-east-1", workerScale: 1 },
+  budget: 3000,
+  assumptions: { region: "us-east-1" },
   currency: "USD",
   usdToInrRate: 95,
 };
 
-export const BATCH_PRESET: DecisionState = {
-  workload: {
-    type: "batch",
-    description: "Transform daily product and order snapshots before the morning reporting window.",
-    dataVolumeGbPerDay: 50,
-    slaMinutes: 60,
-  },
+const mixedDwh = {
+  ...createDefaultWorkload("DWH", "workload-1", "AWS", "Analytics DWH"),
+  computeId: "serverless-sql" as const,
+  hoursPerDay: 8,
+  daysPerMonth: 22,
+};
+const mixedEtl = {
+  ...createDefaultWorkload("ETL", "workload-2", "AWS", "Daily ingestion"),
+  computeId: "jobs-classic" as const,
+};
+
+export const MIXED_PRESET: DecisionState = {
+  projectName: "DWH + ETL project",
+  costPeriod: "monthly",
+  workloads: [mixedDwh, mixedEtl],
+  activeWorkloadId: mixedDwh.id,
   requirements: { cloud: "AWS", privateNetworking: false },
-  budget: 900,
-  assumptions: { hoursPerDay: 8, daysPerMonth: 22, region: "us-east-1", workerScale: 1 },
+  budget: 5000,
+  assumptions: { region: "us-east-1" },
   currency: "USD",
   usdToInrRate: 95,
 };
