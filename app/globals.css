@@ -43,10 +43,10 @@ svg { width: 18px; height: 18px; }
 }
 .brand { display: inline-flex; width: max-content; align-items: center; text-decoration: none; color: var(--ink); font-weight: 760; letter-spacing: -.03em; }
 .brand-lockup { display: grid; gap: 3px; }
-.brand-wordmark { display: inline-flex; align-items: baseline; font-size: 21px; line-height: 1; letter-spacing: -.065em; font-weight: 800; }
+.brand-wordmark { display: inline-flex; align-items: baseline; font-size: 24px; line-height: 1; letter-spacing: -.065em; font-weight: 800; }
 .brand-wordmark > span { color: #102555; }
 .brand-wordmark > b { font-weight: 800; background: linear-gradient(100deg, #5131ef 0%, #c22acb 56%, #f02278 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.brand-lockup small { color: #6d7584; font: 600 8px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .02em; }
+.brand-lockup small { color: #6d7584; font: 600 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .02em; }
 .brand-mark { width: 27px; height: 27px; border-radius: 50%; background: var(--ink); display: inline-flex; align-items: center; justify-content: center; }
 .brand-mark:before { content: ""; width: 11px; height: 11px; border-radius: 50%; background: var(--lime); transform: translate(2px, -2px); }
 .brand-mark span { width: 4px; height: 4px; background: var(--ink); border-radius: 50%; margin-left: -7px; margin-top: -4px; }
@@ -80,17 +80,26 @@ svg { width: 18px; height: 18px; }
 .hero {
   max-width: 1500px;
   margin: 0 auto;
-  padding: 64px clamp(24px, 5vw, 80px) 42px;
+  padding: 60px clamp(24px, 5vw, 80px) 46px;
   scroll-margin-top: 76px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 40px;
+}
+.hero-content { max-width: 1200px; }
+.hero-subrow { display: flex; align-items: flex-end; justify-content: space-between; gap: 32px; }
+.hero-subrow > div:first-child { min-width: 0; }
+.decision-framework { display: flex; align-items: center; gap: 10px; margin-top: 16px; color: #78837d; font: 650 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .15em; text-transform: uppercase; }
+.decision-framework i { color: var(--violet); font-style: normal; letter-spacing: 0; }
+.decision-framework b { color: var(--violet); font-weight: 750; }
+.hero h1 {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(42px, 4vw, 52px);
+  line-height: .97;
+  letter-spacing: -.065em;
+  font-weight: 680;
 }
 .eyebrow, .section-index { margin: 0 0 12px; color: #66756e; font: 600 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; }
-.hero h1 { max-width: 850px; margin: 0; font-size: clamp(42px, 5.2vw, 76px); line-height: .99; letter-spacing: -.065em; font-weight: 640; }
 .hero h1 em { font-family: Georgia, serif; font-weight: 400; }
-.hero-copy { margin: 20px 0 0; color: var(--muted); font-size: 16px; }
+.hero-copy { max-width: 680px; margin: 18px 0 0; color: var(--muted); font-size: 18px; line-height: 1.45; }
 .scenario-wrap { position: relative; flex: none; }
 .scenario-button { border: 0; background: var(--violet); color: white; min-height: 48px; padding: 0 16px; display: flex; align-items: center; gap: 9px; font-weight: 650; }
 .scenario-button svg:last-child { width: 14px; margin-left: 8px; }
@@ -249,7 +258,8 @@ footer > span { justify-self: end; color: var(--lime); font: 600 9px ui-monospac
 }
 
 @media (max-width: 800px) {
-  .hero { align-items: flex-start; flex-direction: column; padding-top: 40px; }
+  .hero { padding-top: 44px; padding-bottom: 38px; }
+  .hero-subrow { align-items: stretch; flex-direction: column; gap: 20px; }
   .workspace { display: block; }
   .input-panel { position: static; }
   .results-panel { border-left: 1px solid var(--line); }
@@ -267,7 +277,8 @@ footer > span { justify-self: end; color: var(--lime); font: 600 9px ui-monospac
   .agent-status { padding: 7px; font-size: 8px; }
   .hero, .workspace { padding-left: 18px; padding-right: 18px; }
   .hero { scroll-margin-top: 66px; }
-  .hero h1 { font-size: 43px; }
+  .hero h1 { font-size: 42px; }
+  .hero-copy { font-size: 17px; }
   .scenario-button { width: 100%; justify-content: center; }
   .scenario-wrap { width: 100%; }
   .scenario-menu { left: 0; right: auto; width: 100%; }

@@ -113,27 +113,34 @@ export function DecisionWorkspace() {
       </header>
 
       <section className="hero" id="top">
-        <div>
+        <div className="hero-content">
           <p className="eyebrow">TECHNICAL DECISION / DATABRICKS</p>
-          <h1>Find the strategy your workload can <em>actually</em> use.</h1>
-          <p className="hero-copy">Technical fit first. Budget fit second. A recommendation you can inspect.</p>
-        </div>
-        <div className="scenario-wrap">
-          <button className="scenario-button" onClick={() => setScenarioMenu((open) => !open)} aria-expanded={scenarioMenu}>
-            <Spark /> Load example <ChevronDown />
-          </button>
-          {scenarioMenu && (
-            <div className="scenario-menu">
-              <button onClick={() => loadScenario(STREAMING_PRESET)}>
-                <span>Streaming / private network</span>
-                <small>24×7 · $1,000 budget</small>
-              </button>
-              <button onClick={() => loadScenario(BATCH_PRESET)}>
-                <span>Daily batch / serverless</span>
-                <small>Business hours · $900 budget</small>
-              </button>
+          <h1>Find the right strategy.</h1>
+          <div className="hero-subrow">
+            <div>
+              <p className="hero-copy">Compare technical fit, current pricing and budget for your workload.</p>
+              <div className="decision-framework" aria-label="Decision framework">
+                <span>FIT</span><i aria-hidden="true">→</i><span>COST</span><i aria-hidden="true">→</i><span>BUDGET</span><i aria-hidden="true">→</i><b>DECIDE</b>
+              </div>
             </div>
-          )}
+            <div className="scenario-wrap">
+              <button className="scenario-button" onClick={() => setScenarioMenu((open) => !open)} aria-expanded={scenarioMenu}>
+                <Spark /> Load example <ChevronDown />
+              </button>
+              {scenarioMenu && (
+                <div className="scenario-menu">
+                  <button onClick={() => loadScenario(STREAMING_PRESET)}>
+                    <span>Streaming / private network</span>
+                    <small>24×7 · $1,000 budget</small>
+                  </button>
+                  <button onClick={() => loadScenario(BATCH_PRESET)}>
+                    <span>Daily batch / serverless</span>
+                    <small>Business hours · $900 budget</small>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 
