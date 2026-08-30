@@ -22,7 +22,8 @@ Open [http://localhost:3000](http://localhost:3000). For a production check, use
 - Independent schedule per workload
 - Regional DBU and VM rates for AWS, Azure, and GCP
 - Transparent DBU and infrastructure cost components on every strategy
-- Desktop comparison matrix, recommendation explanation, filters, and mobile card fallback
+- Desktop comparison matrix, recommendation explanation, and mobile card fallback
+- Separate Compute Guide page with Databricks SQL warehouse capability comparison
 - Explicit hard-gate Pass/Fail states plus structured performance and operations guidance
 - Seventeen high-level WebMCP tools registered on `document.modelContext`
 - A shared React state model used by both human controls and agent calls
@@ -72,6 +73,7 @@ The implementation uses the current imperative WebMCP surface, `document.modelCo
 
 ```text
 app/                    Next.js App Router shell and global visual system
+app/compute-guide/      Read-only Databricks SQL warehouse capability guide
 components/             Decision workspace and icon components
 hooks/use-webmcp.ts     WebMCP registration bound to shared UI state
 lib/decision-engine.ts  Deterministic evaluation and scoring
