@@ -66,7 +66,10 @@ export function DecisionWorkspace() {
     <main>
       <header className="site-header">
         <a className="brand" href="#top" aria-label="StrategyShifu home">
-          <span className="brand-wordmark"><span>Strategy</span><b>Shifu</b></span>
+          <span className="brand-lockup">
+            <span className="brand-wordmark"><span>Strategy</span><b>Shifu</b></span>
+            <small>Decide with your agent.</small>
+          </span>
         </a>
         <nav className="process-nav" aria-label="Decision progress">
           <span className="process-step done"><i><Check /></i> Describe</span>
@@ -75,9 +78,13 @@ export function DecisionWorkspace() {
           <span className="process-line" />
           <span className="process-step active"><i>03</i> Compare</span>
         </nav>
-        <div className={`agent-status ${connection}`} title="WebMCP connection status">
+        <div
+          className={`agent-status ${connection}`}
+          title={connection === "connected" ? "WebMCP tools are available to browser agents on this page." : "WebMCP connection status"}
+          aria-label={connection === "connected" ? "WebMCP tools available" : connection === "checking" ? "Checking WebMCP tools" : "WebMCP tools unavailable"}
+        >
           <span />
-          {connection === "connected" ? "Agent ready" : connection === "checking" ? "Checking agent" : "UI ready"}
+          {connection === "connected" ? "WebMCP tools available" : connection === "checking" ? "Checking WebMCP" : "WebMCP unavailable"}
         </div>
       </header>
 
