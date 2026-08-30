@@ -7,6 +7,12 @@ import type { Cloud, DecisionState, DisplayCurrency, WorkloadType } from "@/lib/
 
 type ConnectionState = "checking" | "connected" | "unavailable";
 
+export type WebMCPToolSummary = {
+  name: string;
+  title?: string;
+  description: string;
+};
+
 function result(payload: unknown): WebMCPToolResult {
   return {
     content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
@@ -17,10 +23,11 @@ function result(payload: unknown): WebMCPToolResult {
 export function useWebMCP(
   decision: DecisionState,
   onDecisionChange: (next: DecisionState) => void,
-): ConnectionState {
+): { connection: ConnectionState; tools: WebMCPToolSummary[] } {
   const decisionRef = useRef(decision);
   const changeRef = useRef(onDecisionChange);
   const [connection, setConnection] = useState<ConnectionState>("checking");
+  const [availableTools, setAvailableTools] = useState<WebMCPToolSummary[]>([]);
 
   useEffect(() => {
     decisionRef.current = decision;
@@ -34,6 +41,7 @@ export function useWebMCP(
     const modelContext = document.modelContext;
     if (!modelContext) {
       setConnection("unavailable");
+      setAvailableTools([]);
       return;
     }
 
@@ -222,11 +230,14 @@ export function useWebMCP(
     ];
 
     Promise.all(tools.map((tool) => modelContext.registerTool(tool, { signal: controller.signal })))
-      .then(() => setConnection("connected"))
+      .then(() => {
+        setAvailableTools(tools.map(({ name, title, description }) => ({ name, title, description })));
+        setConnection("connected");
+      })
       .catch(() => setConnection("unavailable"));
 
     return () => controller.abort();
   }, []);
 
-  return connection;
+  return { connection, tools: availableTools };
 }

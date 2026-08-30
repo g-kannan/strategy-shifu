@@ -15,8 +15,9 @@ export function DecisionWorkspace() {
   const [scheduleView, setScheduleView] = useState<ScheduleView>("monthly");
   const [scenarioMenu, setScenarioMenu] = useState(false);
   const [dataUnit, setDataUnit] = useState<"GB" | "TB">("GB");
+  const [toolsOpen, setToolsOpen] = useState(false);
   const onDecisionChange = useCallback((next: DecisionState) => setDecision(next), []);
-  const connection = useWebMCP(decision, onDecisionChange);
+  const { connection, tools } = useWebMCP(decision, onDecisionChange);
   const comparison = useMemo(() => compareStrategies(decision), [decision]);
 
   const setWorkload = <K extends keyof DecisionState["workload"]>(
@@ -78,13 +79,36 @@ export function DecisionWorkspace() {
           <span className="process-line" />
           <span className="process-step active"><i>03</i> Compare</span>
         </nav>
-        <div
-          className={`agent-status ${connection}`}
-          title={connection === "connected" ? "WebMCP tools are available to browser agents on this page." : "WebMCP connection status"}
-          aria-label={connection === "connected" ? "WebMCP tools available" : connection === "checking" ? "Checking WebMCP tools" : "WebMCP tools unavailable"}
-        >
-          <span />
-          {connection === "connected" ? "WebMCP tools available" : connection === "checking" ? "Checking WebMCP" : "WebMCP unavailable"}
+        <div className="agent-status-wrap">
+          <button
+            className={`agent-status ${connection}`}
+            title={connection === "connected" ? "View the tools available to browser agents." : "WebMCP tools are not available in this browser."}
+            aria-label="WebMCP Tools"
+            aria-expanded={toolsOpen}
+            onClick={() => setToolsOpen((open) => !open)}
+          >
+            <span /> WebMCP Tools
+          </button>
+          {toolsOpen && (
+            <div className="tools-popover" role="dialog" aria-label="WebMCP Tools available">
+              <div className="tools-popover-heading">
+                <div><p className="section-index">BROWSER CAPABILITIES</p><h2>WebMCP Tools</h2></div>
+                <span>{connection === "connected" ? `${tools.length} available` : "Unavailable"}</span>
+              </div>
+              {connection === "connected" ? (
+                <div className="tool-list">
+                  {tools.map((tool) => (
+                    <div className="tool-item" key={tool.name}>
+                      <code>{tool.name}</code>
+                      <p>{tool.description}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="tools-empty">This browser does not expose <code>document.modelContext</code>. The decision workspace remains fully usable.</p>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
