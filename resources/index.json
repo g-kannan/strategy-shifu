@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "exportName": "brickseasy-reusable-data",
+  "generatedFrom": [
+    "src/domain/catalog.ts",
+    "src/domain/pricingSources.ts",
+    "src/components/ComputeGuide.tsx",
+    "src/App.tsx"
+  ],
+  "datasets": [
+    {
+      "file": "catalog.json",
+      "description": "Clouds, regions, warehouse sizes, VM profiles, DBU rates, VM rates, workload types, and mapping defaults."
+    },
+    {
+      "file": "pricing-sources.json",
+      "description": "Vendor pricing reference labels and URLs."
+    },
+    {
+      "file": "compute-guide.json",
+      "description": "SQL warehouse comparison and Spark Declarative Pipelines feature matrix."
+    },
+    {
+      "file": "app-defaults.json",
+      "description": "Estimator defaults, schedule presets, supported display options, and input constraints."
+    }
+  ],
+  "notes": [
+    "Rates are copied from the repository and are planning figures, not provider invoices.",
+    "Prices are denominated in USD unless a field says otherwise.",
+    "Calculation behavior remains in the TypeScript source; these files contain reusable data only.",
+    "The repository comment says VM on-demand prices were refreshed 2026-07-21."
+  ]
+}

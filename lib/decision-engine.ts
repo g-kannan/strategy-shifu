@@ -1,5 +1,13 @@
-import { STRATEGIES } from "./strategies";
-import type { ComparisonResult, DecisionState, DisplayCurrency, Evaluation, StrategyDefinition } from "./types";
+import { calculateWorkloadCost } from "./pricing";
+import { getStrategiesForWorkload } from "./strategies";
+import type {
+  ComparisonResult,
+  DecisionState,
+  DisplayCurrency,
+  Evaluation,
+  StrategyDefinition,
+  Workload,
+} from "./types";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -7,102 +15,107 @@ const currency = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
-export function estimateCost(strategy: StrategyDefinition, decision: DecisionState): number {
-  const { hoursPerDay, daysPerMonth, workerScale } = decision.assumptions;
-  const monthlyHours = hoursPerDay * daysPerMonth;
-  const monthlyVolume = decision.workload.dataVolumeGbPerDay * daysPerMonth;
-  const workloadFactor = decision.workload.type === "streaming" ? 1 : 0.74;
-
-  return Math.round(
-    strategy.baseMonthlyCost +
-      monthlyHours * strategy.computeRate * workerScale * workloadFactor +
-      monthlyVolume * strategy.volumeRate * workerScale,
-  );
+export function getActiveWorkload(decision: DecisionState): Workload {
+  return decision.workloads.find((workload) => workload.id === decision.activeWorkloadId)
+    ?? decision.workloads[0];
 }
 
-function evaluateStrategy(strategy: StrategyDefinition, decision: DecisionState): Evaluation {
+export function estimatePortfolioCost(decision: DecisionState): number {
+  return Math.round(decision.workloads.reduce(
+    (total, workload) => total + calculateWorkloadCost(workload, decision).totalMonthlyCost,
+    0,
+  ));
+}
+
+function evaluateStrategy(
+  strategy: StrategyDefinition,
+  activeWorkload: Workload,
+  otherWorkloadsCost: number,
+  decision: DecisionState,
+): Evaluation {
   const failedRequirements: string[] = [];
+  if (decision.requirements.privateNetworking) {
+    if (!strategy.supportsPrivateNetworking) {
+      failedRequirements.push("Private networking is not supported by this compute option in the planning model.");
+    }
+    const incompatibleWorkloads = decision.workloads
+      .filter((workload) => workload.id !== activeWorkload.id)
+      .filter((workload) => !getStrategiesForWorkload(workload.type)
+        .find((candidate) => candidate.id === workload.computeId)?.supportsPrivateNetworking);
+    if (incompatibleWorkloads.length > 0) {
+      failedRequirements.push(
+        `Configured workload${incompatibleWorkloads.length === 1 ? "" : "s"} ${incompatibleWorkloads.map((workload) => workload.name).join(", ")} must use private-network-compatible compute.`,
+      );
+    }
+  }
 
-  if (!strategy.supports.includes(decision.workload.type)) {
-    failedRequirements.push(`Does not support ${decision.workload.type} workloads.`);
-  }
-  if (decision.requirements.privateNetworking && !strategy.supportsPrivateNetworking) {
-    failedRequirements.push("Private networking is not supported by the configured strategy assumptions.");
-  }
-  if (decision.workload.slaMinutes < strategy.minimumSlaMinutes) {
-    failedRequirements.push(
-      `The ${decision.workload.slaMinutes}-minute SLA is below this strategy's ${strategy.minimumSlaMinutes}-minute operating threshold.`,
-    );
-  }
-
-  const estimatedCost = estimateCost(strategy, decision);
+  const costBreakdown = calculateWorkloadCost(activeWorkload, decision, strategy.id);
+  const workloadCost = Math.round(costBreakdown.totalMonthlyCost);
+  const estimatedCost = Math.round(otherWorkloadsCost + costBreakdown.totalMonthlyCost);
   const technicalFit = failedRequirements.length === 0;
   const budgetFit = estimatedCost <= decision.budget;
   const costEfficiency = Math.max(0, 24 - (estimatedCost / Math.max(decision.budget, 1)) * 16);
-  const workloadBonus =
-    decision.workload.type === "streaming"
-      ? strategy.id.includes("classic") || strategy.id.includes("serverless")
-        ? 22
-        : 10
-      : strategy.id.includes("serverless")
-        ? 24
-        : strategy.id.includes("jobs")
-          ? 21
-          : 16;
   const score = Math.round(
     (technicalFit ? 40 : 0) +
       (budgetFit ? 20 : 0) +
       costEfficiency +
-      strategy.operationalScore +
-      workloadBonus,
+      strategy.operationalScore,
   );
 
-  const reasoning: string[] = [];
-  if (technicalFit) {
-    reasoning.push(`Supports the ${decision.workload.type} workload and ${decision.workload.slaMinutes}-minute SLA.`);
-    if (decision.requirements.privateNetworking) reasoning.push("Meets the private networking requirement.");
-  } else {
-    reasoning.push(...failedRequirements);
-  }
-  reasoning.push(
-    budgetFit
-      ? `${formatCurrency(decision.budget - estimatedCost, decision.currency, decision.usdToInrRate)} remains in the monthly budget.`
-      : `${formatCurrency(estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} over the monthly budget.`,
-  );
+  const reasoning = technicalFit
+    ? [
+        `Supports the ${activeWorkload.type} workload configuration.`,
+        budgetFit
+          ? `${formatCurrency(decision.budget - estimatedCost, decision.currency, decision.usdToInrRate)} remains in the project budget.`
+          : `${formatCurrency(estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} over the project budget.`,
+      ]
+    : failedRequirements;
 
   return {
     strategy,
+    workloadCost,
+    otherWorkloadsCost: Math.round(otherWorkloadsCost),
     estimatedCost,
+    costBreakdown,
     technicalFit,
     budgetFit,
     failedRequirements,
     score,
     reasoning,
     recommended: false,
+    configured: strategy.id === activeWorkload.computeId,
   };
 }
 
 export function compareStrategies(decision: DecisionState): ComparisonResult {
-  const evaluations = STRATEGIES.map((strategy) => evaluateStrategy(strategy, decision)).sort(
-    (a, b) =>
-      Number(b.technicalFit) - Number(a.technicalFit) ||
-      Number(b.budgetFit) - Number(a.budgetFit) ||
-      b.score - a.score ||
-      a.estimatedCost - b.estimatedCost,
-  );
-  const eligible = evaluations
+  const activeWorkload = getActiveWorkload(decision);
+  const otherWorkloadsCost = decision.workloads
+    .filter((workload) => workload.id !== activeWorkload.id)
+    .reduce((total, workload) => total + calculateWorkloadCost(workload, decision).totalMonthlyCost, 0);
+  const currentPortfolioCost = estimatePortfolioCost(decision);
+  const evaluations = getStrategiesForWorkload(activeWorkload.type)
+    .map((strategy) => evaluateStrategy(strategy, activeWorkload, otherWorkloadsCost, decision))
+    .sort(
+      (a, b) =>
+        Number(b.technicalFit) - Number(a.technicalFit) ||
+        Number(b.budgetFit) - Number(a.budgetFit) ||
+        b.score - a.score ||
+        a.estimatedCost - b.estimatedCost,
+    );
+  const winner = evaluations
     .filter((item) => item.technicalFit && item.budgetFit)
-    .sort((a, b) => b.score - a.score || a.estimatedCost - b.estimatedCost);
-  const winner = eligible[0] ?? null;
+    .sort((a, b) => b.score - a.score || a.estimatedCost - b.estimatedCost)[0] ?? null;
 
   if (winner) winner.recommended = true;
 
   return {
+    activeWorkload,
     evaluations,
     recommendation: winner,
+    currentPortfolioCost,
     summary: winner
-      ? `${winner.strategy.shortName} is the strongest technically valid option within the ${formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)} budget.`
-      : "No technically valid strategy fits the current budget. Adjust the budget or workload assumptions to continue.",
+      ? `${winner.strategy.shortName} is the strongest option for ${activeWorkload.name} within the ${formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)} project budget.`
+      : `No technically valid option for ${activeWorkload.name} fits the current project budget.`,
   };
 }
 
@@ -115,4 +128,13 @@ export function formatCurrency(value: number, displayCurrency: DisplayCurrency =
     }).format(value * usdToInrRate);
   }
   return currency.format(value);
+}
+
+export function formatHourlyRate(value: number, displayCurrency: DisplayCurrency = "USD", usdToInrRate = 95): string {
+  return new Intl.NumberFormat(displayCurrency === "INR" ? "en-IN" : "en-US", {
+    style: "currency",
+    currency: displayCurrency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value * (displayCurrency === "INR" ? usdToInrRate : 1));
 }

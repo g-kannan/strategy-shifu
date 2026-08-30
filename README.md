@@ -2,7 +2,7 @@
 
 **Decide with your agent.**
 
-StrategyShifu is an agent-ready technical decision engine. The MVP compares three Databricks data-engineering strategies against a shared workload, hard technical requirements, runtime assumptions, and a monthly budget. It does not simply pick the cheapest option: a strategy must pass technical constraints before it can be recommended.
+StrategyShifu is an agent-ready technical decision engine for a project made up of Databricks workloads. Users can add named DWH, ETL, and development workloads, configure category-specific compute and sizing, schedule each workload independently, and compare alternatives against one regional project budget.
 
 ## Run locally
 
@@ -15,26 +15,30 @@ Open [http://localhost:3000](http://localhost:3000). For a production check, use
 
 ## What is included
 
-- Streaming and batch example scenarios
+- Single-DWH and mixed DWH/ETL example projects
 - Deterministic compatibility, cost, budget, and ranking logic
-- Three locally configured Databricks strategies
-- Editable workload, networking, SLA, cloud, region, runtime, and budget inputs
-- Cloud-aware demo regions limited to one US East and one India option per provider
-- A comparison-first responsive interface with explicit pass/fail states
-- Nine high-level WebMCP tools registered on `document.modelContext`
+- Named workload collection with add, edit, select, and remove actions
+- DWH, ETL, and development compute options with category-specific sizing
+- Independent schedule per workload
+- Regional DBU and VM rates for AWS, Azure, and GCP
+- Transparent DBU and infrastructure cost components on every strategy
+- Desktop comparison matrix, recommendation explanation, filters, and mobile card fallback
+- Explicit hard-gate Pass/Fail states plus structured performance and operations guidance
+- Seventeen high-level WebMCP tools registered on `document.modelContext`
 - A shared React state model used by both human controls and agent calls
 
-Pricing is reference/demo pricing only and is intentionally isolated in [`lib/strategies.ts`](./lib/strategies.ts).
+Pricing is loaded from [`resources/catalog.json`](./resources/catalog.json). These are time-sensitive planning rates, not a Databricks quote; taxes, Azure managed disks, data transfer, and reserved-pricing discounts are excluded.
 
 ## Recommendation logic
 
 The decision engine applies this order:
 
-1. Check hard technical constraints: workload support, private networking, and SLA.
-2. Estimate monthly cost from base cost, runtime, worker scale, and monthly data volume.
-3. Check the estimate against the monthly budget.
-4. Rank eligible options by workload suitability, cost efficiency, and operational simplicity.
-5. Recommend the highest-ranked strategy that passes both technical and budget checks.
+1. Price every configured workload using its selected compute and independent schedule.
+2. For the active workload, resolve all category-valid compute alternatives.
+3. Add the unchanged cost of every other workload to each candidate project.
+4. Apply private-networking and project-budget gates.
+5. Rank eligible options by cost efficiency and operational simplicity.
+6. Recommend only an option that passes both gates.
 
 If no technically valid strategy is within budget, StrategyShifu returns no recommendation. See [`docs/architecture.md`](./docs/architecture.md) for the full model.
 
@@ -45,39 +49,24 @@ The page registers the following browser-native tools:
 | Tool | Purpose |
 | --- | --- |
 | `get_decision_state` | Read the complete input state and computed comparison |
-| `set_workload` | Update workload type, description, volume, or SLA |
+| `list_workloads` | List the project workloads and active workload |
+| `add_workload` | Add a named DWH, ETL, or DEV workload |
+| `update_workload` | Update compute or category-specific sizing |
+| `remove_workload` | Remove a workload except the final one |
+| `select_workload` | Focus the UI and comparison on one workload |
 | `set_requirement` | Update cloud or private-networking requirements |
-| `set_budget` | Update the monthly USD budget and recompute |
+| `set_region` | Update the provider-native pricing region |
+| `set_budget` | Update the monthly project budget |
+| `update_project` | Update the project name or monthly/annual display period |
 | `set_currency` | Toggle USD/INR display and update the conversion rate |
-| `set_assumption` | Update runtime, region, or worker scale |
-| `compare_strategies` | Run the deterministic comparison |
-| `get_cost_estimates` | Return every estimate and the assumptions used |
-| `get_recommendation` | Return the best eligible strategy or no-match result |
+| `set_workload_schedule` | Set one workload's runtime independently |
+| `set_dwh_sizing` | Choose a DWH warehouse size |
+| `get_pricing_options` | Inspect category-valid regional pricing options |
+| `compare_strategies` | Compare options for the active workload |
+| `get_cost_estimates` | Return configured workload and project totals |
+| `get_recommendation` | Return the best active-workload option |
 
 The implementation uses the current imperative WebMCP surface, `document.modelContext.registerTool()`, and unregisters tools with an `AbortSignal`. See [`docs/webmcp.md`](./docs/webmcp.md) for schemas and behavior.
-
-### WebMCP Challenge Demo
-
-This flow is designed to fit comfortably inside three minutes:
-
-1. Open StrategyShifu. The streaming/private-network example is loaded with a $1,000 budget.
-2. Point out that Serverless is cheaper but fails the private-networking requirement, while Classic is technically valid but over budget. There is correctly no recommendation.
-3. Ask the browser agent:
-
-   > Open StrategyShifu. Load the streaming architecture example. My monthly budget is $1,500 and I require private networking. Compare the available strategies and recommend the best option.
-
-4. The agent calls `set_budget` and, if needed, `set_requirement`. The human UI visibly updates and recommends Classic.
-5. Ask:
-
-   > Change my budget to $1,100 and reconsider the decision.
-
-6. The recommendation returns to no-match because the valid option is over budget.
-7. Ask:
-
-   > Change the runtime from 24 hours per day to 8 hours and recalculate the recommendation.
-
-8. The reduced runtime changes every estimate using the same state and Classic becomes eligible again.
-9. Finish by changing a slider manually and asking the agent for `get_recommendation`, demonstrating human/agent collaboration over one decision.
 
 ## Project structure
 
@@ -86,12 +75,15 @@ app/                    Next.js App Router shell and global visual system
 components/             Decision workspace and icon components
 hooks/use-webmcp.ts     WebMCP registration bound to shared UI state
 lib/decision-engine.ts  Deterministic evaluation and scoring
-lib/strategies.ts       Strategy definitions and reference pricing
+lib/pricing.ts          Regional DWH, DBU, driver, and worker cost model
+lib/workloads.ts        Workload defaults, validation, and cloud normalization
+lib/strategies.ts       DWH, ETL, and DEV compute definitions
 lib/presets.ts          Demo scenarios
+resources/              Reusable pricing and sizing catalogs
 types/webmcp.d.ts       Minimal draft WebMCP browser typings
 docs/                   Architecture and WebMCP details
 ```
 
 ## Scope
 
-The MVP intentionally has no authentication, backend, LLM calculation, database, billing, export, or live cloud-pricing integration. The architecture keeps strategy data and evaluation logic separate so those can be added later without changing the human/agent interaction model.
+The MVP intentionally has no authentication, backend, LLM calculation, database, billing, export, or live cloud-pricing integration. The architecture keeps catalog data and deterministic evaluation logic separate so live pricing can be added later without changing the human/agent interaction model.
