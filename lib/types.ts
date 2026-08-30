@@ -1,5 +1,6 @@
 export type WorkloadType = "streaming" | "batch";
 export type Cloud = "AWS" | "Azure" | "GCP";
+export type DisplayCurrency = "USD" | "INR";
 
 export interface Workload {
   type: WorkloadType;
@@ -25,6 +26,8 @@ export interface DecisionState {
   requirements: Requirements;
   budget: number;
   assumptions: Assumptions;
+  currency: DisplayCurrency;
+  usdToInrRate: number;
 }
 
 export interface StrategyDefinition {

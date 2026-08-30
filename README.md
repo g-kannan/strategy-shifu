@@ -21,7 +21,7 @@ Open [http://localhost:3000](http://localhost:3000). For a production check, use
 - Editable workload, networking, SLA, cloud, region, runtime, and budget inputs
 - Cloud-aware demo regions limited to one US East and one India option per provider
 - A comparison-first responsive interface with explicit pass/fail states
-- Eight high-level WebMCP tools registered on `document.modelContext`
+- Nine high-level WebMCP tools registered on `document.modelContext`
 - A shared React state model used by both human controls and agent calls
 
 Pricing is reference/demo pricing only and is intentionally isolated in [`lib/strategies.ts`](./lib/strategies.ts).
@@ -48,6 +48,7 @@ The page registers the following browser-native tools:
 | `set_workload` | Update workload type, description, volume, or SLA |
 | `set_requirement` | Update cloud or private-networking requirements |
 | `set_budget` | Update the monthly USD budget and recompute |
+| `set_currency` | Toggle USD/INR display and update the conversion rate |
 | `set_assumption` | Update runtime, region, or worker scale |
 | `compare_strategies` | Run the deterministic comparison |
 | `get_cost_estimates` | Return every estimate and the assumptions used |

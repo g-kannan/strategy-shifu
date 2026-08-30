@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { compareStrategies } from "@/lib/decision-engine";
 import { isRegionForCloud, REGIONS_BY_CLOUD } from "@/lib/regions";
-import type { Cloud, DecisionState, WorkloadType } from "@/lib/types";
+import type { Cloud, DecisionState, DisplayCurrency, WorkloadType } from "@/lib/types";
 
 type ConnectionState = "checking" | "connected" | "unavailable";
 
@@ -62,7 +62,7 @@ export function useWebMCP(
             type: { type: "string", enum: ["streaming", "batch"] },
             description: { type: "string" },
             dataVolumeGbPerDay: { type: "number", minimum: 1 },
-            slaMinutes: { type: "number", minimum: 1 },
+            slaMinutes: { type: "number", description: "Target SLA in minutes; any numeric value is accepted." },
           },
           additionalProperties: false,
         },
@@ -125,6 +125,32 @@ export function useWebMCP(
           if (typeof input.monthlyBudgetUsd !== "number") throw new Error("monthlyBudgetUsd is required");
           const next = mutate((current) => ({ ...current, budget: input.monthlyBudgetUsd as number }));
           return result({ updated: true, budget: next.budget, comparison: compareStrategies(next) });
+        },
+      },
+      {
+        name: "set_currency",
+        title: "Set display currency",
+        description: "Switch displayed budgets and estimates between USD and INR, with an editable USD to INR conversion rate. Ranking remains based on canonical USD values.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            currency: { type: "string", enum: ["USD", "INR"] },
+            usdToInrRate: { type: "number", minimum: 1 },
+          },
+          required: ["currency"],
+          additionalProperties: false,
+        },
+        execute: (input) => {
+          const currency = input.currency as DisplayCurrency;
+          if (currency !== "USD" && currency !== "INR") throw new Error("currency must be USD or INR");
+          const next = mutate((current) => ({
+            ...current,
+            currency,
+            usdToInrRate: typeof input.usdToInrRate === "number" && input.usdToInrRate > 0
+              ? input.usdToInrRate
+              : current.usdToInrRate,
+          }));
+          return result({ updated: true, currency: next.currency, usdToInrRate: next.usdToInrRate, comparison: compareStrategies(next) });
         },
       },
       {

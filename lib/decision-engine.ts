@@ -1,5 +1,5 @@
 import { STRATEGIES } from "./strategies";
-import type { ComparisonResult, DecisionState, Evaluation, StrategyDefinition } from "./types";
+import type { ComparisonResult, DecisionState, DisplayCurrency, Evaluation, StrategyDefinition } from "./types";
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -66,8 +66,8 @@ function evaluateStrategy(strategy: StrategyDefinition, decision: DecisionState)
   }
   reasoning.push(
     budgetFit
-      ? `${currency.format(decision.budget - estimatedCost)} remains in the monthly budget.`
-      : `${currency.format(estimatedCost - decision.budget)} over the monthly budget.`,
+      ? `${formatCurrency(decision.budget - estimatedCost, decision.currency, decision.usdToInrRate)} remains in the monthly budget.`
+      : `${formatCurrency(estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} over the monthly budget.`,
   );
 
   return {
@@ -101,11 +101,18 @@ export function compareStrategies(decision: DecisionState): ComparisonResult {
     evaluations,
     recommendation: winner,
     summary: winner
-      ? `${winner.strategy.shortName} is the strongest technically valid option within the ${currency.format(decision.budget)} budget.`
+      ? `${winner.strategy.shortName} is the strongest technically valid option within the ${formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)} budget.`
       : "No technically valid strategy fits the current budget. Adjust the budget or workload assumptions to continue.",
   };
 }
 
-export function formatCurrency(value: number): string {
+export function formatCurrency(value: number, displayCurrency: DisplayCurrency = "USD", usdToInrRate = 95): string {
+  if (displayCurrency === "INR") {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(value * usdToInrRate);
+  }
   return currency.format(value);
 }

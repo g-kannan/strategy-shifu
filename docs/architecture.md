@@ -34,6 +34,6 @@ Streaming uses a workload factor of `1.0`; bounded batch work uses `0.74`. Resul
 
 ## UI and browser-agent boundary
 
-`components/decision-workspace.tsx` renders the single-page human workspace. `hooks/use-webmcp.ts` registers eight high-level operations with `document.modelContext`. Tool callbacks return both MCP-style text content and structured content. Each mutation returns the updated comparison, allowing an agent to act and reason without scraping rendered cards.
+`components/decision-workspace.tsx` renders the single-page human workspace. `hooks/use-webmcp.ts` registers nine high-level operations with `document.modelContext`. Tool callbacks return both MCP-style text content and structured content. Each mutation returns the updated comparison, allowing an agent to act and reason without scraping rendered cards.
 
 If WebMCP is unavailable, all human controls continue to work and the header shows `UI ready` rather than claiming an agent connection.

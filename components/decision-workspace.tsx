@@ -5,7 +5,7 @@ import { useWebMCP } from "@/hooks/use-webmcp";
 import { compareStrategies, formatCurrency } from "@/lib/decision-engine";
 import { BATCH_PRESET, STREAMING_PRESET } from "@/lib/presets";
 import { REGIONS_BY_CLOUD } from "@/lib/regions";
-import type { Cloud, DecisionState, Evaluation, WorkloadType } from "@/lib/types";
+import type { Cloud, DecisionState, DisplayCurrency, Evaluation, WorkloadType } from "@/lib/types";
 import { ArrowUpRight, Check, ChevronDown, Clock, Close, Network, Refresh, Spark } from "./icons";
 
 type ScheduleView = "monthly" | "weekly";
@@ -14,6 +14,7 @@ export function DecisionWorkspace() {
   const [decision, setDecision] = useState<DecisionState>(STREAMING_PRESET);
   const [scheduleView, setScheduleView] = useState<ScheduleView>("monthly");
   const [scenarioMenu, setScenarioMenu] = useState(false);
+  const [dataUnit, setDataUnit] = useState<"GB" | "TB">("GB");
   const onDecisionChange = useCallback((next: DecisionState) => setDecision(next), []);
   const connection = useWebMCP(decision, onDecisionChange);
   const comparison = useMemo(() => compareStrategies(decision), [decision]);
@@ -45,14 +46,27 @@ export function DecisionWorkspace() {
 
   const loadScenario = (scenario: DecisionState) => {
     setDecision(structuredClone(scenario));
+    setDataUnit("GB");
     setScenarioMenu(false);
   };
+
+  const displayBudget = decision.currency === "INR" ? decision.budget * decision.usdToInrRate : decision.budget;
+  const visibleVolume = dataUnit === "TB" ? decision.workload.dataVolumeGbPerDay / 1000 : decision.workload.dataVolumeGbPerDay;
+
+  const setCurrency = (currency: DisplayCurrency) =>
+    setDecision((current) => ({ ...current, currency }));
+
+  const setVolume = (value: number) =>
+    setWorkload("dataVolumeGbPerDay", dataUnit === "TB" ? value * 1000 : value);
+
+  const setConversionRate = (value: number) =>
+    setDecision((current) => ({ ...current, usdToInrRate: value > 0 ? value : 95 }));
 
   return (
     <main>
       <header className="site-header">
         <a className="brand" href="#top" aria-label="StrategyShifu home">
-          <span className="logo-crop"><img className="brand-logo" src="/ss_logo.png" alt="StrategyShifu" /></span>
+          <span className="brand-wordmark"><span>Strategy</span><b>Shifu</b></span>
         </a>
         <nav className="process-nav" aria-label="Decision progress">
           <span className="process-step done"><i><Check /></i> Describe</span>
@@ -131,32 +145,35 @@ export function DecisionWorkspace() {
 
           <div className="field-grid">
             <div className="form-section">
-              <label className="field-label" htmlFor="volume">Data / day</label>
+              <div className="field-label-row">
+                <label className="field-label" htmlFor="volume">Data / day</label>
+                <div className="unit-toggle" role="group" aria-label="Data volume unit">
+                  {(["GB", "TB"] as const).map((unit) => (
+                    <button key={unit} className={dataUnit === unit ? "selected" : ""} onClick={() => setDataUnit(unit)}>{unit}</button>
+                  ))}
+                </div>
+              </div>
               <div className="number-field">
                 <input
                   id="volume"
                   type="number"
-                  min="1"
-                  value={decision.workload.dataVolumeGbPerDay}
-                  onChange={(event) => setWorkload("dataVolumeGbPerDay", Number(event.target.value))}
+                  step={dataUnit === "TB" ? "0.01" : "1"}
+                  value={visibleVolume}
+                  onChange={(event) => setVolume(Number(event.target.value))}
                 />
-                <span>GB</span>
+                <span>{dataUnit}</span>
               </div>
             </div>
             <div className="form-section">
               <label className="field-label" htmlFor="sla">SLA</label>
-              <div className="select-field">
-                <select
+              <div className="number-field">
+                <input
                   id="sla"
+                  type="number"
                   value={decision.workload.slaMinutes}
                   onChange={(event) => setWorkload("slaMinutes", Number(event.target.value))}
-                >
-                  <option value="5">5 min</option>
-                  <option value="15">15 min</option>
-                  <option value="60">1 hour</option>
-                  <option value="1440">24 hours</option>
-                </select>
-                <ChevronDown />
+                />
+                <span>MIN</span>
               </div>
             </div>
           </div>
@@ -203,25 +220,33 @@ export function DecisionWorkspace() {
           </div>
 
           <div className="budget-block">
+            <div className="currency-row">
+              <div className="currency-toggle" role="group" aria-label="Display currency">
+                {(["USD", "INR"] as DisplayCurrency[]).map((currency) => (
+                  <button key={currency} className={decision.currency === currency ? "selected" : ""} onClick={() => setCurrency(currency)}>{currency}</button>
+                ))}
+              </div>
+              <label className="rate-control" htmlFor="conversion-rate">1 USD = <input id="conversion-rate" type="number" min="1" step="1" value={decision.usdToInrRate} onChange={(event) => setConversionRate(Number(event.target.value))} /> INR</label>
+            </div>
             <div className="budget-heading">
               <label htmlFor="budget">Monthly budget</label>
-              <span>USD / MONTH</span>
+              <span>{decision.currency} / MONTH</span>
             </div>
             <div className="budget-input">
-              <span>$</span>
+              <span>{decision.currency === "INR" ? "₹" : "$"}</span>
               <input
                 id="budget"
                 type="number"
-                min="100"
-                step="50"
-                value={decision.budget}
-                onChange={(event) => setDecision((current) => ({ ...current, budget: Number(event.target.value) }))}
+                min="0"
+                step={decision.currency === "INR" ? "1000" : "50"}
+                value={displayBudget}
+                onChange={(event) => setDecision((current) => ({ ...current, budget: Number(event.target.value) / (current.currency === "INR" ? current.usdToInrRate : 1) }))}
               />
             </div>
             <div className="budget-presets">
               {[1000, 1500, 2000].map((budget) => (
                 <button key={budget} className={decision.budget === budget ? "selected" : ""} onClick={() => setDecision((current) => ({ ...current, budget }))}>
-                  {formatCurrency(budget)}
+                  {formatCurrency(budget, decision.currency, decision.usdToInrRate)}
                 </button>
               ))}
             </div>
@@ -245,7 +270,7 @@ export function DecisionWorkspace() {
 
           <div className="strategy-grid">
             {comparison.evaluations.map((evaluation, index) => (
-              <StrategyCard key={evaluation.strategy.id} evaluation={evaluation} rank={index + 1} budget={decision.budget} />
+              <StrategyCard key={evaluation.strategy.id} evaluation={evaluation} rank={index + 1} decision={decision} />
             ))}
           </div>
 
@@ -327,12 +352,12 @@ function RecommendationBanner({
         <div className="recommendation-icon"><Close /></div>
         <div className="recommendation-copy">
           <p className="section-index">DECISION STATUS</p>
-          <h3>No valid strategy fits {formatCurrency(decision.budget)}.</h3>
-          <p>{lowestValid ? `The lowest technically valid option needs ${formatCurrency(lowestValid.estimatedCost - decision.budget)} more per month.` : "Relax a hard technical requirement to reveal a valid option."}</p>
+          <h3>No valid strategy fits {formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)}.</h3>
+          <p>{lowestValid ? `The lowest technically valid option needs ${formatCurrency(lowestValid.estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} more per month.` : "Relax a hard technical requirement to reveal a valid option."}</p>
         </div>
         {lowestValid && (
           <button onClick={() => onBudgetChange(Math.ceil(lowestValid.estimatedCost / 50) * 50)}>
-            Raise budget to {formatCurrency(Math.ceil(lowestValid.estimatedCost / 50) * 50)} <ArrowUpRight />
+            Raise budget to {formatCurrency(Math.ceil(lowestValid.estimatedCost / 50) * 50, decision.currency, decision.usdToInrRate)} <ArrowUpRight />
           </button>
         )}
       </div>
@@ -348,14 +373,14 @@ function RecommendationBanner({
         <p>{comparison.summary}</p>
       </div>
       <div className="recommendation-metric">
-        <span>EST. MONTHLY</span><strong>{formatCurrency(winner.estimatedCost)}</strong>
-        <small>{formatCurrency(decision.budget - winner.estimatedCost)} remaining</small>
+        <span>EST. MONTHLY</span><strong>{formatCurrency(winner.estimatedCost, decision.currency, decision.usdToInrRate)}</strong>
+        <small>{formatCurrency(decision.budget - winner.estimatedCost, decision.currency, decision.usdToInrRate)} remaining</small>
       </div>
     </div>
   );
 }
 
-function StrategyCard({ evaluation, rank, budget }: { evaluation: Evaluation; rank: number; budget: number }) {
+function StrategyCard({ evaluation, rank, decision }: { evaluation: Evaluation; rank: number; decision: DecisionState }) {
   const { strategy } = evaluation;
   return (
     <article className={`strategy-card ${evaluation.recommended ? "recommended" : ""}`}>
@@ -365,7 +390,7 @@ function StrategyCard({ evaluation, rank, budget }: { evaluation: Evaluation; ra
       <p className="strategy-full-name">{strategy.name}</p>
       <p className="strategy-description">{strategy.description}</p>
       <div className="cost-row">
-        <span><small>EST. MONTHLY</small><b>{formatCurrency(evaluation.estimatedCost)}</b></span>
+        <span><small>EST. MONTHLY</small><b>{formatCurrency(evaluation.estimatedCost, decision.currency, decision.usdToInrRate)}</b></span>
         <span className="score"><small>SCORE</small><b>{evaluation.score}</b></span>
       </div>
       <div className="fit-grid">
@@ -386,10 +411,10 @@ function StrategyCard({ evaluation, rank, budget }: { evaluation: Evaluation; ra
           <li>− {strategy.disadvantages[0]}</li>
         </ul>
       </div>
-      <div className="budget-track" aria-label={`${strategy.shortName} uses ${Math.round((evaluation.estimatedCost / budget) * 100)} percent of budget`}>
-        <span style={{ width: `${Math.min(100, (evaluation.estimatedCost / Math.max(budget, 1)) * 100)}%` }} />
+      <div className="budget-track" aria-label={`${strategy.shortName} uses ${Math.round((evaluation.estimatedCost / decision.budget) * 100)} percent of budget`}>
+        <span style={{ width: `${Math.min(100, (evaluation.estimatedCost / Math.max(decision.budget, 1)) * 100)}%` }} />
       </div>
-      <small className="budget-caption">{Math.round((evaluation.estimatedCost / Math.max(budget, 1)) * 100)}% OF BUDGET</small>
+      <small className="budget-caption">{Math.round((evaluation.estimatedCost / Math.max(decision.budget, 1)) * 100)}% OF BUDGET</small>
     </article>
   );
 }

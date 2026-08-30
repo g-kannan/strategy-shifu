@@ -34,6 +34,17 @@ All fields are optional; provide at least the fields that should change.
 { "monthlyBudgetUsd": 1500 }
 ```
 
+### `set_currency`
+
+The comparison engine continues ranking against canonical USD values while the UI and human-readable reasoning use the selected display currency.
+
+```json
+{
+  "currency": "USD | INR",
+  "usdToInrRate": 95
+}
+```
+
 ### `set_assumption`
 
 ```json
