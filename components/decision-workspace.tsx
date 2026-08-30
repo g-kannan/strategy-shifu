@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useWebMCP } from "@/hooks/use-webmcp";
 import { compareStrategies, formatCurrency } from "@/lib/decision-engine";
 import { BATCH_PRESET, STREAMING_PRESET } from "@/lib/presets";
+import { REGIONS_BY_CLOUD } from "@/lib/regions";
 import type { Cloud, DecisionState, Evaluation, WorkloadType } from "@/lib/types";
 import { ArrowUpRight, Check, ChevronDown, Clock, Close, Network, Refresh, Spark } from "./icons";
 
@@ -26,6 +27,16 @@ export function DecisionWorkspace() {
     key: K,
     value: DecisionState["requirements"][K],
   ) => setDecision((current) => ({ ...current, requirements: { ...current.requirements, [key]: value } }));
+
+  const setCloud = (cloud: Cloud) =>
+    setDecision((current) => ({
+      ...current,
+      requirements: { ...current.requirements, cloud },
+      assumptions: {
+        ...current.assumptions,
+        region: REGIONS_BY_CLOUD[cloud][0].value,
+      },
+    }));
 
   const setAssumption = <K extends keyof DecisionState["assumptions"]>(
     key: K,
@@ -157,7 +168,7 @@ export function DecisionWorkspace() {
                 <select
                   id="cloud"
                   value={decision.requirements.cloud}
-                  onChange={(event) => setRequirement("cloud", event.target.value as Cloud)}
+                  onChange={(event) => setCloud(event.target.value as Cloud)}
                 >
                   <option>AWS</option><option>Azure</option><option>GCP</option>
                 </select>
@@ -172,7 +183,9 @@ export function DecisionWorkspace() {
                   value={decision.assumptions.region}
                   onChange={(event) => setAssumption("region", event.target.value)}
                 >
-                  <option>us-east-1</option><option>us-west-2</option><option>eu-west-1</option>
+                  {REGIONS_BY_CLOUD[decision.requirements.cloud].map((region) => (
+                    <option key={region.value} value={region.value}>{region.label}</option>
+                  ))}
                 </select>
                 <ChevronDown />
               </div>

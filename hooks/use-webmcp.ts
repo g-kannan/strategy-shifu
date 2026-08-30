@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { compareStrategies } from "@/lib/decision-engine";
+import { isRegionForCloud, REGIONS_BY_CLOUD } from "@/lib/regions";
 import type { Cloud, DecisionState, WorkloadType } from "@/lib/types";
 
 type ConnectionState = "checking" | "connected" | "unavailable";
@@ -92,14 +93,21 @@ export function useWebMCP(
           additionalProperties: false,
         },
         execute: (input) => {
-          const next = mutate((current) => ({
-            ...current,
-            requirements: {
-              ...current.requirements,
-              ...(input.cloud ? { cloud: input.cloud as Cloud } : {}),
-              ...(typeof input.privateNetworking === "boolean" ? { privateNetworking: input.privateNetworking } : {}),
-            },
-          }));
+          const next = mutate((current) => {
+            const cloud = input.cloud ? (input.cloud as Cloud) : current.requirements.cloud;
+            const nextRegion = isRegionForCloud(cloud, current.assumptions.region)
+              ? current.assumptions.region
+              : REGIONS_BY_CLOUD[cloud][0].value;
+            return {
+              ...current,
+              requirements: {
+                ...current.requirements,
+                ...(input.cloud ? { cloud } : {}),
+                ...(typeof input.privateNetworking === "boolean" ? { privateNetworking: input.privateNetworking } : {}),
+              },
+              assumptions: { ...current.assumptions, region: nextRegion },
+            };
+          });
           return result({ updated: true, decision: next, comparison: compareStrategies(next) });
         },
       },
@@ -134,16 +142,21 @@ export function useWebMCP(
           additionalProperties: false,
         },
         execute: (input) => {
-          const next = mutate((current) => ({
-            ...current,
-            assumptions: {
-              ...current.assumptions,
-              ...(typeof input.hoursPerDay === "number" ? { hoursPerDay: input.hoursPerDay } : {}),
-              ...(typeof input.daysPerMonth === "number" ? { daysPerMonth: input.daysPerMonth } : {}),
-              ...(typeof input.region === "string" ? { region: input.region } : {}),
-              ...(typeof input.workerScale === "number" ? { workerScale: input.workerScale } : {}),
-            },
-          }));
+          const next = mutate((current) => {
+            if (typeof input.region === "string" && !isRegionForCloud(current.requirements.cloud, input.region)) {
+              throw new Error(`Region ${input.region} is not available for ${current.requirements.cloud}.`);
+            }
+            return {
+              ...current,
+              assumptions: {
+                ...current.assumptions,
+                ...(typeof input.hoursPerDay === "number" ? { hoursPerDay: input.hoursPerDay } : {}),
+                ...(typeof input.daysPerMonth === "number" ? { daysPerMonth: input.daysPerMonth } : {}),
+                ...(typeof input.region === "string" ? { region: input.region } : {}),
+                ...(typeof input.workerScale === "number" ? { workerScale: input.workerScale } : {}),
+              },
+            };
+          });
           return result({ updated: true, assumptions: next.assumptions, comparison: compareStrategies(next) });
         },
       },

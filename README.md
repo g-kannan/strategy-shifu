@@ -19,6 +19,7 @@ Open [http://localhost:3000](http://localhost:3000). For a production check, use
 - Deterministic compatibility, cost, budget, and ranking logic
 - Three locally configured Databricks strategies
 - Editable workload, networking, SLA, cloud, region, runtime, and budget inputs
+- Cloud-aware demo regions limited to one US East and one India option per provider
 - A comparison-first responsive interface with explicit pass/fail states
 - Eight high-level WebMCP tools registered on `document.modelContext`
 - A shared React state model used by both human controls and agent calls
