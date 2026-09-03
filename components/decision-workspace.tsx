@@ -34,6 +34,7 @@ import {
   normalizeWorkloadForCloud,
 } from "@/lib/workloads";
 import { ArrowUpRight, Check, ChevronDown, Clock, Close, Network, Refresh, Spark } from "./icons";
+import { ExportToolbar } from "./export-toolbar";
 
 type ScheduleView = "monthly" | "weekly";
 
@@ -117,7 +118,8 @@ export function DecisionWorkspace() {
         </a>
         <div className="header-center">
           <nav className="page-nav" aria-label="Primary navigation">
-            <a className="active" href="/" aria-current="page">Databricks</a>
+            <a className="active" href="/" aria-current="page">Databricks Cost</a>
+            <a href="/migrate/redshift-to-databricks">Migration to Databricks</a>
             <a href="/compute-guide">Compute Guide</a>
           </nav>
           <nav className="process-nav" aria-label="Decision progress">
@@ -371,6 +373,12 @@ export function DecisionWorkspace() {
             <div><Network /><span><b>Private networking</b></span></div>
             <button className={`switch ${decision.requirements.privateNetworking ? "on" : ""}`} role="switch" aria-checked={decision.requirements.privateNetworking} onClick={() => setDecision((current) => ({ ...current, requirements: { ...current.requirements, privateNetworking: !current.requirements.privateNetworking } }))}><span /></button>
           </div>
+          {activeWorkload.type === "DWH" && (
+            <div className={`requirement-row genie-requirement ${activeWorkload.naturalLanguageAnalytics ? "active" : ""}`}>
+              <div><Spark /><span><b>Natural-language Q&amp;A</b></span></div>
+              <button className={`switch ${activeWorkload.naturalLanguageAnalytics ? "on" : ""}`} role="switch" aria-label="Require natural-language questions and answers over data" aria-checked={activeWorkload.naturalLanguageAnalytics} onClick={() => setWorkload("naturalLanguageAnalytics", !activeWorkload.naturalLanguageAnalytics)}><span /></button>
+            </div>
+          )}
 
           <div className="budget-block">
             <div className="currency-row">
@@ -402,6 +410,13 @@ export function DecisionWorkspace() {
               <a href={pricingSource.url} target="_blank" rel="noreferrer">{pricingSource.label} ↗</a>
             </p>
           </div>
+
+          <ExportToolbar
+            title={`StrategyShifu Databricks cost assessment — ${decision.projectName}`}
+            copyText={() => costSummary(decision, comparison)}
+            csvText={() => costCsv(decision, comparison)}
+            fileBase="strategyshifu-databricks-cost"
+          />
 
           <RecommendationBanner decision={decision} comparison={comparison} onBudgetChange={(budget) => setDecision((current) => ({ ...current, budget }))} />
 
@@ -447,6 +462,36 @@ export function DecisionWorkspace() {
       </footer>
     </main>
   );
+}
+
+function costSummary(decision: DecisionState, comparison: ReturnType<typeof compareStrategies>) {
+  const multiplier = decision.costPeriod === "annual" ? 12 : 1;
+  const period = decision.costPeriod === "annual" ? "year" : "month";
+  return [
+    `StrategyShifu — ${decision.projectName}`,
+    `Cloud / region: ${decision.requirements.cloud} / ${decision.assumptions.region}`,
+    `Estimated project cost: ${formatCurrency(comparison.currentPortfolioCost * multiplier, decision.currency, decision.usdToInrRate)} / ${period}`,
+    `Budget: ${formatCurrency(decision.budget * multiplier, decision.currency, decision.usdToInrRate)} / ${period}`,
+    `Recommendation: ${comparison.recommendation?.strategy.name ?? "No eligible option"}`,
+    "",
+    ...decision.workloads.map((workload) => `${workload.name}: ${workload.type} · ${workload.computeId} · ${formatCurrency(calculateWorkloadCost(workload, decision).totalMonthlyCost * multiplier, decision.currency, decision.usdToInrRate)} / ${period}`),
+  ].join("\n");
+}
+
+function costCsv(decision: DecisionState, comparison: ReturnType<typeof compareStrategies>) {
+  const workloadRows = decision.workloads.map((workload) => [
+    "Workload", workload.name, workload.type, workload.computeId,
+    workload.hoursPerDay, workload.daysPerMonth,
+    calculateWorkloadCost(workload, decision).totalMonthlyCost.toFixed(2),
+  ]);
+  const optionRows = comparison.evaluations.map((evaluation) => [
+    "Option", evaluation.strategy.name, evaluation.strategy.workloadType, evaluation.strategy.id,
+    "", "", evaluation.workloadCost.toFixed(2), evaluation.estimatedCost.toFixed(2), evaluation.score,
+  ]);
+  return [
+    ["Row type", "Name", "Workload type", "Compute", "Hours/day", "Days/month", "Monthly workload USD", "Monthly project USD", "Score"],
+    ...workloadRows, ...optionRows,
+  ].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
 }
 
 type ComparisonView = "compare" | "why";
@@ -498,6 +543,16 @@ function ComparisonExperience({
                     </div>
                   ))}
                 </ComparisonRow>
+                {comparison.activeWorkload.naturalLanguageAnalytics && (
+                  <ComparisonRow label="Databricks Genie" hint="Genie enables chat-based and natural-language questions over data and is supported on Serverless and Pro SQL warehouses." recommendedIndex={recommendedIndex}>
+                    {evaluations.map((evaluation) => (
+                      <div key={evaluation.strategy.id} className={`table-signal ${evaluation.strategy.supportsGenie ? "pass" : "fail"}`}>
+                        <i>{evaluation.strategy.supportsGenie ? <Check /> : <Close />}</i>
+                        <span><b>{evaluation.strategy.supportsGenie ? "Supported" : "Not supported"}</b><small>{evaluation.strategy.supportsGenie ? "Chat + NLP questions over data" : "Genie requires Serverless or Pro SQL"}</small></span>
+                      </div>
+                    ))}
+                  </ComparisonRow>
+                )}
                 <ComparisonRow label="Workload cost" hint="Monthly cost for the active workload only." recommendedIndex={recommendedIndex}>
                   {evaluations.map((evaluation) => (
                     <div key={evaluation.strategy.id} className="table-metric"><b>{formatCurrency(evaluation.workloadCost, decision.currency, decision.usdToInrRate)}</b><small>{formatHourlyRate(evaluation.costBreakdown.totalHourlyRate, decision.currency, decision.usdToInrRate)} / runtime hour</small></div>
@@ -541,6 +596,7 @@ function OptionHeader({ evaluation, decision, onSelectOption }: { evaluation: Ev
       <div className="table-option-badges">
         {evaluation.recommended && <span className="table-recommended"><Spark /> RECOMMENDED</span>}
         {evaluation.configured && <span className="table-current">CURRENT</span>}
+        {getActiveWorkload(decision).naturalLanguageAnalytics && evaluation.strategy.supportsGenie && <span className="table-genie"><Spark /> GENIE</span>}
       </div>
       <div className="table-option-title"><i className={evaluation.configured ? "selected" : ""} /><span><b>{evaluation.strategy.shortName}</b><small>{evaluation.strategy.category}</small></span></div>
       <strong>{formatCurrency(evaluation.workloadCost, decision.currency, decision.usdToInrRate)} <small>/ month</small></strong>
@@ -576,7 +632,7 @@ function TextMetric({ title, detail }: { title: string; detail?: string }) {
 function WhyRecommended({ decision, comparison, onSelectOption }: { decision: DecisionState; comparison: ReturnType<typeof compareStrategies>; onSelectOption: (computeId: ComputeId) => void }) {
   const winner = comparison.recommendation;
   if (!winner) {
-    return <div className="why-panel no-winner"><span><Close /></span><div><p className="section-index">NO ELIGIBLE RECOMMENDATION</p><h3>Every option fails a hard gate.</h3><p>Review private networking and project budget signals in the comparison view.</p></div></div>;
+    return <div className="why-panel no-winner"><span><Close /></span><div><p className="section-index">NO ELIGIBLE RECOMMENDATION</p><h3>Every option fails a hard gate.</h3><p>Review Genie support, private networking, and project budget signals in the comparison view.</p></div></div>;
   }
   const alternatives = comparison.evaluations.filter((evaluation) => evaluation.strategy.id !== winner.strategy.id);
   return (
@@ -614,7 +670,7 @@ function RecommendationBanner({ decision, comparison, onBudgetChange }: { decisi
         <div className="recommendation-copy">
           <p className="section-index">PROJECT STATUS</p>
           <h3>No valid option fits {formatCurrency(decision.budget, decision.currency, decision.usdToInrRate)}.</h3>
-          <p>{lowestValid ? `The lowest valid project needs ${formatCurrency(lowestValid.estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} more per month.` : "Relax the private networking requirement to reveal another option."}</p>
+          <p>{lowestValid ? `The lowest valid project needs ${formatCurrency(lowestValid.estimatedCost - decision.budget, decision.currency, decision.usdToInrRate)} more per month.` : "Review Genie, networking, and workload compatibility requirements to reveal another option."}</p>
         </div>
         {lowestValid && <button onClick={() => onBudgetChange(Math.ceil(lowestValid.estimatedCost / 50) * 50)}>Raise budget to {formatCurrency(Math.ceil(lowestValid.estimatedCost / 50) * 50, decision.currency, decision.usdToInrRate)} <ArrowUpRight /></button>}
       </div>
@@ -644,6 +700,7 @@ function StrategyCard({ evaluation, rank, decision }: { evaluation: Evaluation; 
       <div className="card-topline"><span>0{rank}</span><small>{strategy.category}</small></div>
       <h3>{strategy.shortName}</h3>
       <p className="strategy-full-name">{strategy.name}</p>
+      {getActiveWorkload(decision).naturalLanguageAnalytics && <span className={`genie-card-badge ${strategy.supportsGenie ? "supported" : "unsupported"}`}>{strategy.supportsGenie ? "Genie · Chat + NLP" : "Genie not supported"}</span>}
       <p className="strategy-description">{strategy.description}</p>
       <div className="cost-row">
         <span><small>WORKLOAD / MONTH</small><b>{formatCurrency(evaluation.workloadCost, decision.currency, decision.usdToInrRate)}</b></span>

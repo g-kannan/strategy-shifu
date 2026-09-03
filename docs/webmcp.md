@@ -36,6 +36,15 @@ All update fields are optional after workloadId. Category changes reset compute 
 }
 ~~~
 
+For a DWH workload, set `naturalLanguageAnalytics` to `true` when the user asks for chat-based or NLP questions over data. The decision UI then highlights Databricks Genie and restricts eligible SQL warehouse options to Serverless and Pro.
+
+~~~json
+{
+  "workloadId": "workload-1",
+  "naturalLanguageAnalytics": true
+}
+~~~
+
 ### remove_workload
 
 ~~~json
