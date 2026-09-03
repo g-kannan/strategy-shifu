@@ -4,6 +4,28 @@ StrategyShifu registers browser-native tools through document.modelContext.regis
 
 All mutations update the same DecisionState rendered by React and return fresh deterministic project output.
 
+## Tool strategy
+
+The user goal is a reviewable Databricks cost or migration decision, not autonomous execution of infrastructure changes. The initial state is the currently visible project or migration form, including the active workload and every constraint already supplied by the person. WebMCP tools can inspect and revise that planning state, but cannot provision resources, purchase services, or approve a production migration.
+
+Typical agent journeys are intentionally flexible:
+
+1. Read the current assessment and identify missing or conflicting constraints.
+2. Ask the person for material information that is not present instead of guessing it.
+3. Apply confirmed inputs to the shared workspace.
+4. Compare options and explain the deterministic recommendation, failed gates, risks, and assumptions.
+5. Leave the final decision with the person, visible in the same UI.
+
+Tool descriptions and schemas describe single-purpose operations so an agent can select only the capabilities needed for a journey.
+
+## Reliability and security
+
+- Inputs are validated in executable code as well as described by JSON Schema. Invalid values return field-specific recovery guidance and do not mutate visible state.
+- Mutations update the same React state used by the human controls before returning the recalculated decision result.
+- Read-only tools carry `readOnlyHint`. Tools that return user-entered planning text or current external documentation carry `untrustedContentHint`.
+- Registrations are scoped to the page lifecycle with an AbortSignal. If a browser rejects one tool, successfully registered tools remain available; if it rejects every tool, the human workflow remains usable.
+- The integration uses the maintained `webmcp-types` package while still feature-detecting `document.modelContext`, because WebMCP is experimental and unsupported browsers must retain the complete UI workflow.
+
 ## Workload operations
 
 ### list_workloads

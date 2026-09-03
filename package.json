@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test": "tsx --test tests/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -17,6 +18,8 @@
     "@types/node": "22.18.1",
     "@types/react": "19.1.12",
     "@types/react-dom": "19.1.9",
-    "typescript": "5.9.2"
+    "tsx": "^4.23.13",
+    "typescript": "5.9.2",
+    "webmcp-types": "^0.1.6"
   }
 }
