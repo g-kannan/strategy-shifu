@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 
 const SOURCES = {
-  redshiftIceberg: "https://docs.aws.amazon.com/redshift/latest/dg/iceberg-v3-features.html",
+  redshiftIceberg: "https://aws.amazon.com/about-aws/whats-new/2026/08/amazon-redshift-supports-apache-iceberg-v3/",
   databricksIceberg: "https://docs.databricks.com/aws/en/iceberg/",
   federation: "https://docs.databricks.com/aws/en/query-federation/database-federation",
   export: "https://docs.aws.amazon.com/redshift/latest/dg/r_UNLOAD.html",
@@ -11,7 +11,9 @@ const SOURCES = {
 
 type CapabilityKind = keyof typeof SOURCES;
 
-const LAST_KNOWN_AT = "2026-09-03T00:00:00.000Z";
+const SUPPORTED_SINCE: Partial<Record<CapabilityKind, string>> = {
+  redshiftIceberg: "2026-08-31",
+};
 
 function stripMarkup(html: string) {
   return html
@@ -25,11 +27,11 @@ function stripMarkup(html: string) {
 }
 
 function fallback(kind: CapabilityKind) {
-  const common = { sourceUrl: SOURCES[kind], checkedAt: LAST_KNOWN_AT, fresh: false };
+  const common = { sourceUrl: SOURCES[kind], supportedSince: SUPPORTED_SINCE[kind] };
   if (kind === "redshiftIceberg") return {
     ...common,
-    icebergVersionSupport: ["v2", "v3"],
-    supportedOperations: ["SELECT", "INSERT", "UPDATE", "DELETE", "MERGE"],
+    icebergVersionSupport: ["v3"],
+    supportedOperations: ["READ", "WRITE"],
     unsupportedDataTypes: [],
     limitations: ["Validate table data types and features before migration.", "Define one catalog owner and explicit write ownership per table."],
   };
@@ -55,26 +57,25 @@ function fallback(kind: CapabilityKind) {
   };
 }
 
-async function retrieve(kind: CapabilityKind, forceRefresh: boolean) {
-  const response = await fetch(SOURCES[kind], forceRefresh
-    ? { cache: "no-store", headers: { "user-agent": "StrategyShifu-Capability-Check/1.0" } }
-    : { next: { revalidate: 86_400 }, headers: { "user-agent": "StrategyShifu-Capability-Check/1.0" } });
+async function retrieve(kind: CapabilityKind) {
+  const response = await fetch(SOURCES[kind], {
+    next: { revalidate: 86_400 },
+    headers: { "user-agent": "StrategyShifu-Capability-Check/1.0" },
+  });
   if (!response.ok) throw new Error(`Documentation request returned ${response.status}`);
   const text = stripMarkup(await response.text());
-  const checkedAt = new Date().toISOString();
 
   if (kind === "redshiftIceberg") {
-    const operations = ["INSERT", "UPDATE", "DELETE", "MERGE"].filter((operation) => text.includes(operation.toLowerCase()));
     return {
-      sourceUrl: SOURCES[kind], checkedAt, fresh: true,
-      icebergVersionSupport: [text.includes("iceberg v2") ? "v2" : null, text.includes("iceberg v3") ? "v3" : null].filter(Boolean),
-      supportedOperations: ["SELECT", ...operations],
+      sourceUrl: SOURCES[kind], supportedSince: SUPPORTED_SINCE[kind],
+      icebergVersionSupport: text.includes("iceberg v3") ? ["v3"] : [],
+      supportedOperations: text.includes("reading from") && text.includes("writing to") ? ["READ", "WRITE"] : [],
       unsupportedDataTypes: [],
       limitations: ["Validate table data types and features before migration.", "Define one catalog owner and explicit write ownership per table."],
     };
   }
   if (kind === "databricksIceberg") return {
-    sourceUrl: SOURCES[kind], checkedAt, fresh: true,
+    sourceUrl: SOURCES[kind], supportedSince: SUPPORTED_SINCE[kind],
     icebergVersions: ["v1", "v2", ...(text.includes("iceberg v3") ? ["v3 (feature-dependent)"] : [])],
     foreignCatalogSupport: ["External Iceberg catalogs through Lakehouse Federation", "Unity Catalog Iceberg REST Catalog"],
     readSupport: text.includes("read"),
@@ -84,7 +85,7 @@ async function retrieve(kind: CapabilityKind, forceRefresh: boolean) {
     limitations: ["Foreign Iceberg tables are read-only and have limited platform support.", "Confirm the runtime and client version required by each Iceberg feature."],
   };
   if (kind === "federation") return {
-    sourceUrl: SOURCES[kind], checkedAt, fresh: true,
+    sourceUrl: SOURCES[kind], supportedSince: SUPPORTED_SINCE[kind],
     supported: text.includes("redshift"),
     accessMode: "Unity Catalog foreign catalog over JDBC; Standard or Dedicated compute access modes.",
     readWriteSupport: text.includes("queries are read-only") ? "Read-only for Redshift federated queries." : "Validate read/write behavior before implementation.",
@@ -92,7 +93,7 @@ async function retrieve(kind: CapabilityKind, forceRefresh: boolean) {
     limitations: ["Large result sets can exhaust a single executor task.", "Redshift external data and case-sensitive identifiers are not supported."],
   };
   return {
-    sourceUrl: SOURCES[kind], checkedAt, fresh: true,
+    sourceUrl: SOURCES[kind], supportedSince: SUPPORTED_SINCE[kind],
     methods: [{
       name: "UNLOAD → S3",
       supportsParquet: text.includes("parquet"),
@@ -102,9 +103,9 @@ async function retrieve(kind: CapabilityKind, forceRefresh: boolean) {
   };
 }
 
-async function safeRetrieve(kind: CapabilityKind, forceRefresh: boolean) {
+async function safeRetrieve(kind: CapabilityKind) {
   try {
-    return await retrieve(kind, forceRefresh);
+    return await retrieve(kind);
   } catch {
     return fallback(kind);
   }
@@ -113,13 +114,12 @@ async function safeRetrieve(kind: CapabilityKind, forceRefresh: boolean) {
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const kind = url.searchParams.get("kind") ?? "all";
-  const forceRefresh = url.searchParams.get("refresh") === "1";
 
   if (kind === "all") {
     const keys = Object.keys(SOURCES) as CapabilityKind[];
-    const values = await Promise.all(keys.map((key) => safeRetrieve(key, forceRefresh)));
+    const values = await Promise.all(keys.map((key) => safeRetrieve(key)));
     return NextResponse.json(Object.fromEntries(keys.map((key, index) => [key, values[index]])));
   }
   if (!(kind in SOURCES)) return NextResponse.json({ error: "Unknown capability kind." }, { status: 400 });
-  return NextResponse.json(await safeRetrieve(kind as CapabilityKind, forceRefresh));
+  return NextResponse.json(await safeRetrieve(kind as CapabilityKind));
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWebMCP } from "@/hooks/use-webmcp";
 import { compareStrategies, formatCurrency, formatHourlyRate, getActiveWorkload } from "@/lib/decision-engine";
 import {
@@ -35,6 +35,7 @@ import {
 } from "@/lib/workloads";
 import { ArrowUpRight, Check, ChevronDown, Clock, Close, Network, Refresh, Spark } from "./icons";
 import { ExportToolbar } from "./export-toolbar";
+import { createShareUrl, isDecisionState, readSharedState } from "@/lib/share-state";
 
 type ScheduleView = "monthly" | "weekly";
 
@@ -45,6 +46,12 @@ export function DecisionWorkspace() {
   const [toolsOpen, setToolsOpen] = useState(false);
   const onDecisionChange = useCallback((next: DecisionState) => setDecision(next), []);
   const { connection, tools } = useWebMCP(decision, onDecisionChange);
+
+  useEffect(() => {
+    const sharedDecision = readSharedState("cost", isDecisionState);
+    if (sharedDecision) setDecision(sharedDecision);
+  }, []);
+
   const comparison = useMemo(() => compareStrategies(decision), [decision]);
   const activeWorkload = getActiveWorkload(decision);
   const pricingSource = getPricingSource(decision.requirements.cloud);
@@ -249,6 +256,13 @@ export function DecisionWorkspace() {
             );
           })}
         </div>
+        <ExportToolbar
+          title={`StrategyShifu Databricks cost assessment — ${decision.projectName}`}
+          copyText={() => costSummary(decision, comparison)}
+          csvText={() => costCsv(decision, comparison)}
+          fileBase="strategyshifu-databricks-cost"
+          shareUrl={() => createShareUrl("cost", decision)}
+        />
       </section>
 
       <section className="workspace" aria-label="Technical decision workspace">
@@ -410,13 +424,6 @@ export function DecisionWorkspace() {
               <a href={pricingSource.url} target="_blank" rel="noreferrer">{pricingSource.label} ↗</a>
             </p>
           </div>
-
-          <ExportToolbar
-            title={`StrategyShifu Databricks cost assessment — ${decision.projectName}`}
-            copyText={() => costSummary(decision, comparison)}
-            csvText={() => costCsv(decision, comparison)}
-            fileBase="strategyshifu-databricks-cost"
-          />
 
           <RecommendationBanner decision={decision} comparison={comparison} onBudgetChange={(budget) => setDecision((current) => ({ ...current, budget }))} />
 

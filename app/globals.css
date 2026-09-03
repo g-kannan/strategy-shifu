@@ -676,6 +676,7 @@ footer > span { justify-self: end; color: var(--lime); font: 600 9px ui-monospac
 .migration-closing em { color: var(--violet); font-family: Georgia, serif; font-weight: 400; }
 
 .export-toolbar { min-height: 38px; margin: 0 0 13px auto; display: flex; align-items: stretch; justify-content: flex-end; width: max-content; max-width: 100%; border: 1px solid #405048; background: var(--ink); color: #dce3de; }
+.project-overview > .export-toolbar { margin-top: 14px; margin-bottom: 0; border-color: #405048; }
 .export-toolbar button { min-height: 36px; padding: 0 11px; display: inline-flex; align-items: center; gap: 6px; border: 0; border-right: 1px solid #405048; background: transparent; color: inherit; font: 650 9px ui-monospace, monospace; }
 .export-toolbar button:hover { background: #26372f; color: var(--lime); }
 .export-toolbar button:nth-of-type(3) { color: var(--lime); }

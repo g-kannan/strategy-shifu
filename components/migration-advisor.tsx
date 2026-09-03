@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getComparisonValue, evaluateMigration, MIGRATION_STRATEGIES, type ComparisonCriterion } from "@/lib/migration-engine";
 import type { CapabilityEvidence, MigrationInputs, StrategyId } from "@/lib/migration-types";
 import { useMigrationWebMCP } from "@/hooks/use-migration-webmcp";
-import { ChevronDown, Refresh } from "./icons";
+import { ChevronDown } from "./icons";
 import { ExportToolbar } from "./export-toolbar";
+import { createShareUrl, isMigrationInputs, readSharedState } from "@/lib/share-state";
 
 const DEFAULT_INPUTS: MigrationInputs = {
   dataSizeGb: 12_000,
@@ -54,27 +55,31 @@ export function MigrationAdvisor() {
   const [dataUnit, setDataUnit] = useState<"GB" | "TB">("TB");
   const [toolsOpen, setToolsOpen] = useState(false);
   const [capabilities, setCapabilities] = useState<CapabilityEvidence[]>([]);
-  const [capabilityState, setCapabilityState] = useState<"checking" | "live" | "fallback" | "unavailable">("checking");
-  const [refreshing, setRefreshing] = useState(false);
+  const [capabilityState, setCapabilityState] = useState<"checking" | "available" | "unavailable">("checking");
   const comparisonRef = useRef<HTMLElement>(null);
   const onInputsChange = useCallback((next: MigrationInputs) => setInputs(next), []);
   const { connection, tools } = useMigrationWebMCP(inputs, onInputsChange);
+
+  useEffect(() => {
+    const sharedInputs = readSharedState("migration", isMigrationInputs);
+    if (!sharedInputs) return;
+    setInputs(sharedInputs);
+    setDataUnit(sharedInputs.dataSizeGb >= 1000 ? "TB" : "GB");
+  }, []);
+
   const recommendation = useMemo(() => evaluateMigration(inputs), [inputs]);
   const alternative = recommendation.alternatives[0];
 
-  const loadCapabilities = useCallback(async (force = false) => {
-    if (force) setRefreshing(true);
+  const loadCapabilities = useCallback(async () => {
     try {
-      const response = await fetch(`/api/migration-capabilities?kind=all${force ? "&refresh=1" : ""}`);
+      const response = await fetch("/api/migration-capabilities?kind=all");
       if (!response.ok) throw new Error("Capability request failed");
       const raw = await response.json() as RawCapabilities;
       const normalized = normalizeCapabilities(raw);
       setCapabilities(normalized);
-      setCapabilityState(normalized.every((item) => item.fresh) ? "live" : "fallback");
+      setCapabilityState("available");
     } catch {
       setCapabilityState("unavailable");
-    } finally {
-      setRefreshing(false);
     }
   }, []);
 
@@ -85,9 +90,8 @@ export function MigrationAdvisor() {
 
   const displayDataSize = dataUnit === "TB" ? inputs.dataSizeGb / 1000 : inputs.dataSizeGb;
   const capabilityMessage = capabilityState === "checking" ? "Checking official documentation…"
-    : capabilityState === "live" ? "Live capability validation available"
-    : capabilityState === "fallback" ? "Using last known capability information"
-    : "Live compatibility validation unavailable. Scores use migration characteristics only.";
+    : capabilityState === "available" ? "Based on official documentation"
+    : "Official documentation unavailable. Scores use built-in evidence.";
 
   return (
     <main className="migration-page">
@@ -193,6 +197,7 @@ export function MigrationAdvisor() {
             copyText={() => migrationSummary(inputs, recommendation)}
             csvText={() => migrationCsv(inputs, recommendation)}
             fileBase="strategyshifu-redshift-to-databricks"
+            shareUrl={() => createShareUrl("migration", inputs)}
           />
           <section className="print-assessment-context">
             <p className="section-index">ASSESSMENT CONTEXT</p>
@@ -267,9 +272,9 @@ export function MigrationAdvisor() {
           </section>
 
           <details className="migration-evidence" open>
-            <summary><span><small>TECHNICAL EVIDENCE</small><b>Why StrategyShifu recommends this</b></span><span className={`capability-dot ${capabilityState}`} /> <ChevronDown /></summary>
-            <div className="capability-bar"><span>{capabilityMessage}</span><button onClick={(event) => { event.preventDefault(); void loadCapabilities(true); }} disabled={refreshing}><Refresh /> {refreshing ? "Refreshing…" : "Refresh capabilities"}</button></div>
-            {capabilities.length > 0 && <div className="evidence-grid">{capabilities.map((item) => <article key={item.id}><p>{item.provider}</p><b>{item.statement}</b>{item.limitations.slice(0, 1).map((limit) => <span key={limit}>{limit}</span>)}<small>Checked {formatCheckedAt(item.checkedAt)} · {item.fresh ? "Live" : "Last known"}</small></article>)}</div>}
+            <summary><span><small>TECHNICAL EVIDENCE</small><b>Why StrategyShifu recommends this</b></span><ChevronDown /></summary>
+            <div className="capability-bar"><span>{capabilityMessage}</span></div>
+            {capabilities.length > 0 && <div className="evidence-grid">{capabilities.map((item) => <article key={item.id}><p>{item.provider}</p><b>{item.statement}</b>{item.limitations.slice(0, 1).map((limit) => <span key={limit}>{limit}</span>)}<small>{item.supportedSince ? `Supported since ${formatSupportedSince(item.supportedSince)}` : "Official documentation source"} · <a href={item.sourceUrl} target="_blank" rel="noreferrer">View source</a></small></article>)}</div>}
             <p className="evidence-note">Capability checks validate the deterministic result; they do not choose the strategy.</p>
           </details>
         </div>
@@ -319,20 +324,20 @@ function normalizeCapabilities(raw: RawCapabilities): CapabilityEvidence[] {
   const databricks = raw.databricksIceberg ?? {};
   const federation = raw.federation ?? {};
   const exportInfo = raw.export ?? {};
-  const operations = Array.isArray(redshift.supportedOperations) ? redshift.supportedOperations.join(", ") : "query and DML operations";
   const methods = Array.isArray(exportInfo.methods) ? exportInfo.methods as Array<Record<string, unknown>> : [];
   return [
-    { id: "redshiftIceberg", provider: "Amazon Redshift", statement: `Iceberg v2/v3 operations validated: ${operations}.`, limitations: stringArray(redshift.limitations), checkedAt: String(redshift.checkedAt ?? ""), fresh: redshift.fresh === true },
-    { id: "databricksIceberg", provider: "Databricks", statement: String(databricks.writeSupport ?? "Iceberg access varies by catalog ownership."), limitations: stringArray(databricks.limitations), checkedAt: String(databricks.checkedAt ?? ""), fresh: databricks.fresh === true },
-    { id: "federation", provider: "Databricks Federation", statement: String(federation.readWriteSupport ?? "Redshift federation capability validated."), limitations: stringArray(federation.limitations), checkedAt: String(federation.checkedAt ?? ""), fresh: federation.fresh === true },
-    { id: "export", provider: "Amazon Redshift", statement: methods[0]?.supportsParquet ? "UNLOAD supports scalable parallel export to S3 in Parquet." : "UNLOAD exports Redshift query results to S3.", limitations: [], checkedAt: String(exportInfo.checkedAt ?? ""), fresh: exportInfo.fresh === true },
+    { id: "redshiftIceberg", provider: "Amazon Redshift", statement: "Apache Iceberg v3 tables supported for reading and writing in Amazon Redshift.", limitations: stringArray(redshift.limitations), sourceUrl: String(redshift.sourceUrl ?? ""), supportedSince: optionalString(redshift.supportedSince) },
+    { id: "databricksIceberg", provider: "Databricks", statement: String(databricks.writeSupport ?? "Iceberg access varies by catalog ownership."), limitations: stringArray(databricks.limitations), sourceUrl: String(databricks.sourceUrl ?? ""), supportedSince: optionalString(databricks.supportedSince) },
+    { id: "federation", provider: "Databricks Federation", statement: String(federation.readWriteSupport ?? "Redshift federation capability validated."), limitations: stringArray(federation.limitations), sourceUrl: String(federation.sourceUrl ?? ""), supportedSince: optionalString(federation.supportedSince) },
+    { id: "export", provider: "Amazon Redshift", statement: methods[0]?.supportsParquet ? "UNLOAD supports scalable parallel export to S3 in Parquet." : "UNLOAD exports Redshift query results to S3.", limitations: [], sourceUrl: String(exportInfo.sourceUrl ?? ""), supportedSince: optionalString(exportInfo.supportedSince) },
   ];
 }
 
 function stringArray(value: unknown) { return Array.isArray(value) ? value.map(String) : []; }
-function formatCheckedAt(value: string) {
+function optionalString(value: unknown) { return typeof value === "string" && value ? value : undefined; }
+function formatSupportedSince(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "unavailable" : new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(date);
+  return Number.isNaN(date.getTime()) ? "the source date" : new Intl.DateTimeFormat("en", { day: "2-digit", month: "short", year: "numeric" }).format(date);
 }
 
 function formatDataSize(valueGb: number) { return valueGb >= 1000 ? `${valueGb / 1000} TB` : `${valueGb} GB`; }
