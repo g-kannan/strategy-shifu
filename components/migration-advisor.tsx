@@ -187,7 +187,7 @@ export function MigrationAdvisor() {
         </aside>
 
         <div className="migration-results">
-          <div className="result-kicker"><span>02 / RECOMMENDATION</span><small>Updates as inputs change</small></div>
+          <div className="result-kicker"><span>02 / RECOMMENDATION</span></div>
           <ExportToolbar
             title="StrategyShifu Redshift to Databricks migration assessment"
             copyText={() => migrationSummary(inputs, recommendation)}
