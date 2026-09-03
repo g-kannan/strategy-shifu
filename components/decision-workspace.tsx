@@ -34,6 +34,7 @@ import {
   normalizeWorkloadForCloud,
 } from "@/lib/workloads";
 import { ArrowUpRight, Check, ChevronDown, Clock, Close, Network, Refresh, Spark } from "./icons";
+import { ExportToolbar } from "./export-toolbar";
 
 type ScheduleView = "monthly" | "weekly";
 
@@ -117,7 +118,8 @@ export function DecisionWorkspace() {
         </a>
         <div className="header-center">
           <nav className="page-nav" aria-label="Primary navigation">
-            <a className="active" href="/" aria-current="page">Databricks</a>
+            <a className="active" href="/" aria-current="page">Databricks Cost</a>
+            <a href="/migrate/redshift-to-databricks">Migration to Databricks</a>
             <a href="/compute-guide">Compute Guide</a>
           </nav>
           <nav className="process-nav" aria-label="Decision progress">
@@ -409,6 +411,13 @@ export function DecisionWorkspace() {
             </p>
           </div>
 
+          <ExportToolbar
+            title={`StrategyShifu Databricks cost assessment — ${decision.projectName}`}
+            copyText={() => costSummary(decision, comparison)}
+            csvText={() => costCsv(decision, comparison)}
+            fileBase="strategyshifu-databricks-cost"
+          />
+
           <RecommendationBanner decision={decision} comparison={comparison} onBudgetChange={(budget) => setDecision((current) => ({ ...current, budget }))} />
 
           <ComparisonExperience
@@ -453,6 +462,36 @@ export function DecisionWorkspace() {
       </footer>
     </main>
   );
+}
+
+function costSummary(decision: DecisionState, comparison: ReturnType<typeof compareStrategies>) {
+  const multiplier = decision.costPeriod === "annual" ? 12 : 1;
+  const period = decision.costPeriod === "annual" ? "year" : "month";
+  return [
+    `StrategyShifu — ${decision.projectName}`,
+    `Cloud / region: ${decision.requirements.cloud} / ${decision.assumptions.region}`,
+    `Estimated project cost: ${formatCurrency(comparison.currentPortfolioCost * multiplier, decision.currency, decision.usdToInrRate)} / ${period}`,
+    `Budget: ${formatCurrency(decision.budget * multiplier, decision.currency, decision.usdToInrRate)} / ${period}`,
+    `Recommendation: ${comparison.recommendation?.strategy.name ?? "No eligible option"}`,
+    "",
+    ...decision.workloads.map((workload) => `${workload.name}: ${workload.type} · ${workload.computeId} · ${formatCurrency(calculateWorkloadCost(workload, decision).totalMonthlyCost * multiplier, decision.currency, decision.usdToInrRate)} / ${period}`),
+  ].join("\n");
+}
+
+function costCsv(decision: DecisionState, comparison: ReturnType<typeof compareStrategies>) {
+  const workloadRows = decision.workloads.map((workload) => [
+    "Workload", workload.name, workload.type, workload.computeId,
+    workload.hoursPerDay, workload.daysPerMonth,
+    calculateWorkloadCost(workload, decision).totalMonthlyCost.toFixed(2),
+  ]);
+  const optionRows = comparison.evaluations.map((evaluation) => [
+    "Option", evaluation.strategy.name, evaluation.strategy.workloadType, evaluation.strategy.id,
+    "", "", evaluation.workloadCost.toFixed(2), evaluation.estimatedCost.toFixed(2), evaluation.score,
+  ]);
+  return [
+    ["Row type", "Name", "Workload type", "Compute", "Hours/day", "Days/month", "Monthly workload USD", "Monthly project USD", "Score"],
+    ...workloadRows, ...optionRows,
+  ].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n");
 }
 
 type ComparisonView = "compare" | "why";

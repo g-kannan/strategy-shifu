@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "StrategyShifu — Decide with your agent",
+  title: "Databricks Cost Advisor — StrategyShifu",
   description:
     "An agent-ready decision engine for regional Databricks SQL warehouse sizing and pricing.",
 };

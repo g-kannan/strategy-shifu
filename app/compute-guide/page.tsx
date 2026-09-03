@@ -72,7 +72,8 @@ export default function ComputeGuide() {
         </a>
         <div className="header-center">
           <nav className="page-nav" aria-label="Primary navigation">
-            <a href="/">Databricks</a>
+            <a href="/">Databricks Cost</a>
+            <a href="/migrate/redshift-to-databricks">Migration to Databricks</a>
             <a className="active" href="/compute-guide" aria-current="page">Compute Guide</a>
           </nav>
         </div>
