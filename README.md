@@ -35,7 +35,7 @@ Open [http://localhost:3000](http://localhost:3000). For a production check, use
 - Migration scoring for Iceberg coexistence, Lakehouse Federation, UNLOAD to S3, and JDBC copy alternatives
 - Migration execution signals for phased vs. big-bang delivery, ETL/BI/POC sequencing, change synchronization, datatype risk, and cutover gates
 - Seventeen cost-planning WebMCP tools and seven migration WebMCP tools registered on `document.modelContext`
-- Best-effort live capability checks for Redshift and Databricks, with a structured fallback when documentation is unavailable
+- Official documentation evidence for Redshift and Databricks capabilities, with a structured fallback when documentation is unavailable
 - Share, Copy, CSV, and Print / PDF exports on the cost and migration assessment views
 - A shared React state model used by both human controls and agent calls
 
@@ -66,7 +66,7 @@ The migration advisor evaluates four practical paths:
 
 The score is adjusted for data volume, largest-table size, change rate, write pattern, SQL complexity, coexistence window, downtime tolerance, shared S3, target state and format, migration priority, change-synchronization plan, and special or incompatible data types. Every assessment also returns an execution approach, recommended sequencing, readiness risk, assumptions, and checks that should be closed before production cutover.
 
-The migration page can refresh structured capability evidence from the server-side API. If a source is unavailable, the advisor returns the last-known structured fallback and marks it as not fresh; it does not block the deterministic assessment.
+The migration page loads structured capability evidence from the server-side API. Evidence uses the documented support date where it is known—for example, Amazon Redshift Iceberg v3 support is shown as supported since Aug 31, 2026—and links back to the source. If a source is unavailable, the advisor uses built-in evidence; it does not block the deterministic assessment.
 
 ## Exporting an assessment
 

@@ -66,6 +66,6 @@ export interface CapabilityEvidence {
   provider: "Amazon Redshift" | "Databricks" | "Databricks Federation";
   statement: string;
   limitations: string[];
-  checkedAt: string;
-  fresh: boolean;
+  sourceUrl: string;
+  supportedSince?: string;
 }
