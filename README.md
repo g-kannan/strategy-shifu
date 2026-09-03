@@ -87,7 +87,3 @@ resources/              Reusable pricing and sizing catalogs
 types/webmcp.d.ts       Minimal draft WebMCP browser typings
 docs/                   Architecture and WebMCP details
 ```
-
-## Scope
-
-The MVP intentionally has no authentication, backend, LLM calculation, database, billing, export, or live cloud-pricing integration. The architecture keeps catalog data and deterministic evaluation logic separate so live pricing can be added later without changing the human/agent interaction model.
