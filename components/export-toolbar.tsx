@@ -7,9 +7,10 @@ type ExportToolbarProps = {
   copyText: () => string;
   csvText: () => string;
   fileBase: string;
+  shareUrl: () => string;
 };
 
-export function ExportToolbar({ title, copyText, csvText, fileBase }: ExportToolbarProps) {
+export function ExportToolbar({ title, copyText, csvText, fileBase, shareUrl }: ExportToolbarProps) {
   const [status, setStatus] = useState("");
 
   const showStatus = (message: string) => {
@@ -23,12 +24,13 @@ export function ExportToolbar({ title, copyText, csvText, fileBase }: ExportTool
   };
 
   const share = async () => {
-    const shareData = { title, text: copyText(), url: window.location.href };
+    const url = shareUrl();
+    const shareData = { title, text: "Open this StrategyShifu assessment with all inputs restored.", url };
     if (navigator.share) {
       try { await navigator.share(shareData); } catch { return; }
     } else {
-      const copied = await writeToClipboard(`${title}\n${window.location.href}`);
-      showStatus(copied ? "Link copied" : "Share unavailable");
+      const copied = await writeToClipboard(`${title}\n${url}`);
+      showStatus(copied ? "Share link copied" : "Share unavailable");
     }
   };
 

@@ -6,6 +6,7 @@ import type { CapabilityEvidence, MigrationInputs, StrategyId } from "@/lib/migr
 import { useMigrationWebMCP } from "@/hooks/use-migration-webmcp";
 import { ChevronDown, Refresh } from "./icons";
 import { ExportToolbar } from "./export-toolbar";
+import { createShareUrl, isMigrationInputs, readSharedState } from "@/lib/share-state";
 
 const DEFAULT_INPUTS: MigrationInputs = {
   dataSizeGb: 12_000,
@@ -59,6 +60,14 @@ export function MigrationAdvisor() {
   const comparisonRef = useRef<HTMLElement>(null);
   const onInputsChange = useCallback((next: MigrationInputs) => setInputs(next), []);
   const { connection, tools } = useMigrationWebMCP(inputs, onInputsChange);
+
+  useEffect(() => {
+    const sharedInputs = readSharedState("migration", isMigrationInputs);
+    if (!sharedInputs) return;
+    setInputs(sharedInputs);
+    setDataUnit(sharedInputs.dataSizeGb >= 1000 ? "TB" : "GB");
+  }, []);
+
   const recommendation = useMemo(() => evaluateMigration(inputs), [inputs]);
   const alternative = recommendation.alternatives[0];
 
@@ -193,6 +202,7 @@ export function MigrationAdvisor() {
             copyText={() => migrationSummary(inputs, recommendation)}
             csvText={() => migrationCsv(inputs, recommendation)}
             fileBase="strategyshifu-redshift-to-databricks"
+            shareUrl={() => createShareUrl("migration", inputs)}
           />
           <section className="print-assessment-context">
             <p className="section-index">ASSESSMENT CONTEXT</p>
