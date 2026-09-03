@@ -3,17 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import { evaluateMigration } from "@/lib/migration-engine";
 import type { MigrationInputs } from "@/lib/migration-types";
-import type { WebMCPToolSummary } from "./use-webmcp";
-
-type ConnectionState = "checking" | "connected" | "unavailable";
-
-function result(payload: unknown): WebMCPToolResult {
-  return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }], structuredContent: payload };
-}
+import {
+  registerWebMCPTools,
+  toolResult as result,
+  type WebMCPConnectionState as ConnectionState,
+  type WebMCPToolSummary,
+} from "@/lib/webmcp";
 
 async function capability(kind: string) {
   const response = await fetch(`/api/migration-capabilities?kind=${kind}`);
-  if (!response.ok) throw new Error("Capability validation is temporarily unavailable.");
+  if (!response.ok) {
+    throw new Error(`Capability evidence is temporarily unavailable (HTTP ${response.status}). Retry later; the deterministic migration assessment remains available.`);
+  }
   return response.json() as Promise<Record<string, unknown>>;
 }
 
@@ -39,9 +40,9 @@ export function useMigrationWebMCP(
 
     const controller = new AbortController();
     const inputProperties = {
-      dataSizeGb: { type: "number", minimum: 0 },
-      tableCount: { type: "number", minimum: 0 },
-      largestTableGb: { type: "number", minimum: 0 },
+      dataSizeGb: { type: "number", minimum: 0, description: "Total source data volume in GB." },
+      tableCount: { type: "integer", minimum: 0, description: "Number of source tables in migration scope." },
+      largestTableGb: { type: "number", minimum: 0, description: "Largest in-scope source table size in GB." },
       dailyChangeRate: { type: "string", enum: ["< 1%", "1–5%", "5–20%", "> 20%", "Unknown"] },
       writePattern: { type: "string", enum: ["Mostly append", "MERGE / upsert", "Frequent UPDATE", "Frequent DELETE", "Mixed workload", "Mostly read-only"] },
       redshiftSqlComplexity: { type: "string", enum: ["Low", "Medium", "High", "Unknown"] },
@@ -56,11 +57,15 @@ export function useMigrationWebMCP(
       specialDataTypes: { type: "string", enum: ["None known", "Some", "Extensive", "Unknown"] },
     };
 
-    const capabilityTool = (name: string, title: string, description: string, kind: string): WebMCPTool => ({
-      name, title, description, execute: async () => result(await capability(kind)),
+    const capabilityTool = (name: string, title: string, description: string, kind: string): WebMCP.ModelContextTool => ({
+      name,
+      title,
+      description,
+      annotations: { readOnlyHint: true, untrustedContentHint: true },
+      execute: async () => result(await capability(kind)),
     });
 
-    const tools: WebMCPTool[] = [
+    const tools: WebMCP.ModelContextTool[] = [
       capabilityTool("get_redshift_iceberg_capabilities", "Get Redshift Iceberg capabilities", "Validate current Redshift Iceberg versions, DML operations, and limitations against official documentation.", "redshiftIceberg"),
       capabilityTool("get_databricks_iceberg_capabilities", "Get Databricks Iceberg capabilities", "Validate managed and foreign Iceberg read/write behavior in Databricks.", "databricksIceberg"),
       capabilityTool("get_lakehouse_federation_redshift_capabilities", "Get Redshift federation capabilities", "Validate current Lakehouse Federation support, access mode, use cases, and limits for Redshift.", "federation"),
@@ -69,6 +74,7 @@ export function useMigrationWebMCP(
         name: "get_migration_assessment",
         title: "Get migration assessment",
         description: "Read the current Redshift-to-Databricks inputs, deterministic scores, recommendation, risks, alternative, steps, and architecture.",
+        annotations: { readOnlyHint: true },
         execute: () => result({ inputs: inputsRef.current, recommendation: evaluateMigration(inputsRef.current) }),
       },
       {
@@ -77,6 +83,9 @@ export function useMigrationWebMCP(
         description: "Update one or more advisor inputs; the StrategyShifu scoring engine will immediately recalculate the recommendation.",
         inputSchema: { type: "object", properties: inputProperties, additionalProperties: false },
         execute: (next) => {
+          if (Object.keys(next).length === 0) {
+            throw new Error("update_migration_inputs needs at least one migration field to change.");
+          }
           const updated = { ...inputsRef.current, ...next } as MigrationInputs;
           inputsRef.current = updated;
           changeRef.current(updated);
@@ -86,13 +95,17 @@ export function useMigrationWebMCP(
       {
         name: "assess_redshift_databricks_migration",
         title: "Assess Redshift to Databricks migration",
-        description: "Combine StrategyShifu's deterministic scoring with current structured AWS and Databricks capability evidence.",
+        description: "Apply supplied migration inputs to the visible workspace, then combine deterministic scoring with current AWS and Databricks capability evidence.",
+        annotations: { untrustedContentHint: true },
         inputSchema: { type: "object", properties: inputProperties, additionalProperties: false },
         execute: async (provided) => {
           const assessmentInputs = { ...inputsRef.current, ...provided } as MigrationInputs;
           const liveCapabilities = await capability("all");
           const recommendation = evaluateMigration(assessmentInputs);
+          inputsRef.current = assessmentInputs;
+          changeRef.current(assessmentInputs);
           return result({
+            updated: true,
             inputs: assessmentInputs,
             recommendation,
             liveCapabilities,
@@ -103,14 +116,19 @@ export function useMigrationWebMCP(
       },
     ];
 
-    Promise.all(tools.map((tool) => Promise.resolve(modelContext.registerTool(tool, { signal: controller.signal }))))
-      .then(() => {
+    registerWebMCPTools(modelContext, tools, controller.signal)
+      .then((registeredTools) => {
         if (!controller.signal.aborted) {
-          setAvailableTools(tools.map(({ name, title, description }) => ({ name, title, description })));
+          setAvailableTools(registeredTools);
           setConnection("connected");
         }
       })
-      .catch(() => { if (!controller.signal.aborted) setConnection("unavailable"); });
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          setAvailableTools([]);
+          setConnection("unavailable");
+        }
+      });
 
     return () => controller.abort();
   }, []);

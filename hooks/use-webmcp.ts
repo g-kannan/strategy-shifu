@@ -10,6 +10,12 @@ import {
   WAREHOUSE_SIZES,
 } from "@/lib/pricing";
 import { isRegionForCloud, REGIONS_BY_CLOUD } from "@/lib/regions";
+import {
+  registerWebMCPTools,
+  toolResult as result,
+  type WebMCPConnectionState as ConnectionState,
+  type WebMCPToolSummary,
+} from "@/lib/webmcp";
 import type {
   Cloud,
   CostPeriod,
@@ -28,20 +34,7 @@ import {
   normalizeWorkloadForCloud,
 } from "@/lib/workloads";
 
-type ConnectionState = "checking" | "connected" | "unavailable";
-
-export type WebMCPToolSummary = {
-  name: string;
-  title?: string;
-  description: string;
-};
-
-function result(payload: unknown): WebMCPToolResult {
-  return {
-    content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
-    structuredContent: payload,
-  };
-}
+export type { WebMCPToolSummary } from "@/lib/webmcp";
 
 export function useWebMCP(
   decision: DecisionState,
@@ -85,29 +78,31 @@ export function useWebMCP(
     };
 
     const workloadProperties = {
-      name: { type: "string" },
-      type: { type: "string", enum: ["DWH", "ETL", "DEV"] },
-      computeId: { type: "string", enum: ["serverless-sql", "pro-sql", "classic-sql", "jobs-classic", "jobs-serverless", "all-purpose-classic"] },
+      name: { type: "string", minLength: 1, maxLength: 120, description: "Human-readable workload name shown in the workspace." },
+      type: { type: "string", enum: ["DWH", "ETL", "DEV"], description: "DWH for SQL/BI, ETL for jobs, or DEV for interactive development." },
+      computeId: { type: "string", enum: ["serverless-sql", "pro-sql", "classic-sql", "jobs-classic", "jobs-serverless", "all-purpose-classic"], description: "Compute option compatible with the workload type." },
       naturalLanguageAnalytics: { type: "boolean", description: "Set true when users need chat-based or NLP questions over data; this requires Databricks Genie on Serverless or Pro SQL." },
       warehouseSize: { type: "string", enum: WAREHOUSE_SIZES },
       driverInstance: { type: "string" },
       workerInstance: { type: "string" },
-      workerCount: { type: "number", minimum: 1, maximum: 1000 },
-      pipelines: { type: "number", minimum: 1, maximum: 1000 },
+      workerCount: { type: "integer", minimum: 1, maximum: 1000 },
+      pipelines: { type: "integer", minimum: 1, maximum: 1000 },
       serverlessDbuPerHour: { type: "number", minimum: 0.01, maximum: 10000 },
     };
 
-    const tools: WebMCPTool[] = [
+    const tools: WebMCP.ModelContextTool[] = [
       {
         name: "get_decision_state",
         title: "Get decision state",
         description: "Read the project workloads, active workload, requirements, budget, regional assumptions, and current recommendation.",
+        annotations: { readOnlyHint: true },
         execute: () => result({ decision: decisionRef.current, comparison: compareStrategies(decisionRef.current) }),
       },
       {
         name: "list_workloads",
         title: "List workloads",
         description: "List every configured workload and identify the workload currently being edited.",
+        annotations: { readOnlyHint: true },
         execute: () => result({
           activeWorkloadId: decisionRef.current.activeWorkloadId,
           workloads: decisionRef.current.workloads,
@@ -120,8 +115,8 @@ export function useWebMCP(
         inputSchema: {
           type: "object",
           properties: {
-            name: { type: "string" },
-            type: { type: "string", enum: ["DWH", "ETL", "DEV"] },
+            name: workloadProperties.name,
+            type: workloadProperties.type,
           },
           additionalProperties: false,
         },
@@ -147,6 +142,9 @@ export function useWebMCP(
         },
         execute: (input) => {
           if (typeof input.workloadId !== "string") throw new Error("workloadId is required");
+          if (Object.keys(input).every((key) => key === "workloadId")) {
+            throw new Error("update_workload needs at least one workload field to change.");
+          }
           const next = mutate((current) => updateWorkload(current, input.workloadId as string, (existing) => {
             const type = typeof input.type === "string" ? input.type as WorkloadCategory : existing.type;
             let workload = type === existing.type ? existing : changeWorkloadType(existing, type);
@@ -231,6 +229,9 @@ export function useWebMCP(
           additionalProperties: false,
         },
         execute: (input) => {
+          if (!("cloud" in input) && !("privateNetworking" in input)) {
+            throw new Error("set_requirement needs cloud, privateNetworking, or both.");
+          }
           const next = mutate((current) => {
             const cloud = input.cloud ? input.cloud as Cloud : current.requirements.cloud;
             const cloudChanged = cloud !== current.requirements.cloud;
@@ -274,7 +275,7 @@ export function useWebMCP(
         description: "Set the monthly USD budget applied to the complete project of configured workloads.",
         inputSchema: {
           type: "object",
-          properties: { monthlyBudgetUsd: { type: "number", minimum: 1 } },
+          properties: { monthlyBudgetUsd: { type: "number", minimum: 1, description: "Complete project budget per month in USD." } },
           required: ["monthlyBudgetUsd"],
           additionalProperties: false,
         },
@@ -297,6 +298,9 @@ export function useWebMCP(
           additionalProperties: false,
         },
         execute: (input) => {
+          if (!("projectName" in input) && !("costPeriod" in input)) {
+            throw new Error("update_project needs projectName, costPeriod, or both.");
+          }
           const next = mutate((current) => {
             const projectName = typeof input.projectName === "string" ? input.projectName.trim() : current.projectName;
             if ("projectName" in input && !projectName) throw new Error("projectName cannot be empty");
@@ -340,14 +344,17 @@ export function useWebMCP(
           type: "object",
           properties: {
             workloadId: { type: "string" },
-            hoursPerDay: { type: "number", minimum: 1, maximum: 24 },
-            daysPerMonth: { type: "number", minimum: 1, maximum: 31 },
+            hoursPerDay: { type: "integer", minimum: 1, maximum: 24 },
+            daysPerMonth: { type: "integer", minimum: 1, maximum: 31 },
           },
           required: ["workloadId"],
           additionalProperties: false,
         },
         execute: (input) => {
           if (typeof input.workloadId !== "string") throw new Error("workloadId is required");
+          if (!("hoursPerDay" in input) && !("daysPerMonth" in input)) {
+            throw new Error("set_workload_schedule needs hoursPerDay, daysPerMonth, or both.");
+          }
           const next = mutate((current) => updateWorkload(current, input.workloadId as string, (workload) => ({
             ...workload,
             ...(typeof input.hoursPerDay === "number" ? { hoursPerDay: input.hoursPerDay } : {}),
@@ -382,6 +389,7 @@ export function useWebMCP(
         name: "get_pricing_options",
         title: "Get regional pricing options",
         description: "Inspect compute, sizing, DBU, and VM options for a workload category in the active cloud and region.",
+        annotations: { readOnlyHint: true },
         inputSchema: {
           type: "object",
           properties: { workloadType: { type: "string", enum: ["DWH", "ETL", "DEV"] } },
@@ -398,12 +406,14 @@ export function useWebMCP(
         name: "compare_strategies",
         title: "Compare active workload options",
         description: "Compare category-valid compute options for the selected workload against technical requirements and total project budget.",
+        annotations: { readOnlyHint: true },
         execute: () => result(compareStrategies(decisionRef.current)),
       },
       {
         name: "get_cost_estimates",
         title: "Get project cost estimates",
         description: "Return configured monthly pricing components for every workload and the total project.",
+        annotations: { readOnlyHint: true },
         execute: () => result({
           cloud: decisionRef.current.requirements.cloud,
           region: decisionRef.current.assumptions.region,
@@ -421,19 +431,29 @@ export function useWebMCP(
         name: "get_recommendation",
         title: "Get active workload recommendation",
         description: "Return the best compute option for the active workload that satisfies technical constraints and total project budget.",
+        annotations: { readOnlyHint: true },
         execute: () => {
           const comparison = compareStrategies(decisionRef.current);
           return result({ activeWorkload: comparison.activeWorkload, recommendation: comparison.recommendation, summary: comparison.summary });
         },
       },
     ];
+    const toolsWithTrustHints = tools.map((tool) => tool.name === "get_pricing_options" ? tool : ({
+      ...tool,
+      annotations: { ...tool.annotations, untrustedContentHint: true },
+    }));
 
-    Promise.all(tools.map((tool) => modelContext.registerTool(tool, { signal: controller.signal })))
-      .then(() => {
-        setAvailableTools(tools.map(({ name, title, description }) => ({ name, title, description })));
+    registerWebMCPTools(modelContext, toolsWithTrustHints, controller.signal)
+      .then((registeredTools) => {
+        if (controller.signal.aborted) return;
+        setAvailableTools(registeredTools);
         setConnection("connected");
       })
-      .catch(() => setConnection("unavailable"));
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        setAvailableTools([]);
+        setConnection("unavailable");
+      });
 
     return () => controller.abort();
   }, []);

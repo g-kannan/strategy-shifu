@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000). For a production check, use `npm run typecheck` and `npm run build`.
+Open [http://localhost:3000](http://localhost:3000). For a production check, use `npm test`, `npm run typecheck`, and `npm run build`.
 
 ## Decision tools
 
@@ -109,7 +109,7 @@ The Databricks Cost page registers the following browser-native tools:
 | `get_cost_estimates` | Return configured workload and project totals |
 | `get_recommendation` | Return the best active-workload option |
 
-The implementation uses the current imperative WebMCP surface, `document.modelContext.registerTool()`, and unregisters tools with an `AbortSignal`. See [`docs/webmcp.md`](./docs/webmcp.md) for schemas and behavior.
+The implementation uses the current imperative WebMCP surface, `document.modelContext.registerTool()`, the maintained `webmcp-types` definitions, executable input validation, annotation hints, and `AbortSignal` lifecycle cleanup. See [`docs/webmcp.md`](./docs/webmcp.md) for the tool strategy, boundaries, schemas, and recovery behavior.
 
 The Migration to Databricks page registers seven additional tools: four capability readers, `get_migration_assessment`, `update_migration_inputs`, and `assess_redshift_databricks_migration`. Migration capability readers return structured evidence for Redshift Iceberg, Databricks Iceberg, Redshift federation, and Redshift export options.
 
@@ -133,6 +133,6 @@ lib/workloads.ts        Workload defaults, validation, and cloud normalization
 lib/strategies.ts       DWH, ETL, and DEV compute definitions
 lib/presets.ts          Demo scenarios
 resources/              Reusable pricing and sizing catalogs
-types/webmcp.d.ts       Minimal draft WebMCP browser typings
+types/webmcp.d.ts       WebMCP ambient-type reference
 docs/                   Architecture and WebMCP details
 ```
